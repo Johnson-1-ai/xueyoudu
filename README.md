@@ -4,4 +4,4 @@
 
 在线访问：https://johnson-1-ai.github.io/xueyoudu/
 
-> 当前版本 v14.9
+> 当前版本 v14.38
