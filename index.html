@@ -390,7 +390,7 @@ summary{cursor:pointer;color:var(--ink);font-weight:600}
 .auth-area{display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:18px;border-top:1px solid var(--line)}
 .auth-btn{width:100%;justify-content:center}
 .auth-hint{font-size:10.5px;color:var(--muted);text-align:center}
-.auth-backdrop{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;background:rgba(20,35,30,.32);backdrop-filter:blur(3px)}
+.auth-backdrop{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;background:#f3f1e8}
 .auth-backdrop[hidden]{display:none}
 .auth-panel{position:relative;width:min(360px,92vw);padding:30px 28px;background:var(--paper-2);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 70px rgba(20,35,30,.2)}
 .auth-panel h3{font-size:20px;margin:0 0 4px}
@@ -856,9 +856,9 @@ body.modal-locked{overflow:hidden}
           <div class="coach-game" id="coachGame" hidden aria-live="off">
             <div class="game-hud">
               <span class="game-lives" id="gameLives" role="img" aria-label="剩余生命 5">♥♥♥♥♥</span>
-              <span class="game-score" id="gameScore" aria-live="off">已躲过 0 个</span>
+              <span class="game-score" id="gameScore" aria-live="off">分数 0</span>
             </div>
-            <div class="game-track"><canvas id="restGame" tabindex="0" role="img" aria-label="休息小游戏画面：小球沿地面线跑动，点击或按空格跳跃躲避障碍" aria-describedby="gameHint"></canvas></div>
+            <div class="game-track"><canvas id="restGame" tabindex="0" role="img" aria-label="休息小游戏画面：点击/空格跳跃（可二段跳），Shift 加速，躲避地面障碍与低空飞鸟" aria-describedby="gameHint"></canvas></div>
             <p class="game-hint" id="gameHint">鼠标左键 / 触屏点击 / 空格起跳 · 5 次碰撞会结束休息，先完成一题再继续</p>
           </div>
         </div>
@@ -924,11 +924,11 @@ body.modal-locked{overflow:hidden}
       <div class="record-tabs" role="tablist" aria-label="排行榜类型">
         <button class="record-tab" id="lbTabPoints" role="tab" aria-selected="true" data-lb-kind="points">积分榜</button>
         <button class="record-tab" id="lbTabAccuracy" role="tab" aria-selected="false" data-lb-kind="accuracy">正确率榜</button>
-        <button class="record-tab" id="lbTabGame" role="tab" aria-selected="false" data-lb-kind="game">游戏时长榜</button>
+        <button class="record-tab" id="lbTabGame" role="tab" aria-selected="false" data-lb-kind="game">游戏最高分</button>
       </div>
       <div class="my-rank" id="myRank">未登录 · 登录后可看自己的排名</div>
       <ol class="leaderboard" id="leaderboardList"></ol>
-      <div class="leaderboard-note">积分规则：答对得 10×难度 分，用时越短加成越多（0~20 分）；游戏时长按休息小游戏坚持秒数累计。</div>
+      <div class="leaderboard-note">积分规则：答对得 10×难度 分，用时越短加成越多（0~20 分）；游戏榜按个人单局最高得分排名。</div>
     </section>
   </section>
 
@@ -958,7 +958,7 @@ body.modal-locked{overflow:hidden}
     </section>
   </section>
 
-  <div class="foot" id="globalFoot">学习辅助原型 · 不采集摄像头或麦克风数据 · 状态为行为估算，不用于诊断或学生排名 · 无需联网 · 当前题库：初中数学 · <span id="versionTag">v14.4</span></div>
+  <div class="foot" id="globalFoot">学习辅助原型 · 不采集摄像头或麦克风数据 · 状态为行为估算，不用于诊断或学生排名 · 无需联网 · 当前题库：初中数学 · <span id="versionTag">v14.8</span></div>
 </main>
 <div id="toast" role="status"></div>
 <div class="streak-celebration" id="streakCelebration" hidden role="dialog" aria-modal="true" aria-labelledby="celebrationTitle">
@@ -1062,7 +1062,7 @@ const MATH_QUESTION_BANK = [
 ];
 </script>
 <script>const BKT_P={L0:.5,T:.15,G:.25,S:.15};
-const kpModel={};let ability=3;let targetDifficulty=2;const VERSION='14.4';
+const kpModel={};let ability=3;let targetDifficulty=2;const VERSION='14.8';
 let usedQids=new Set();
 function evaluateAnswerState(isCorrect,timeSpent,kp,difficulty){
   kp=kp||'综合';
@@ -1158,11 +1158,12 @@ function reset(simulation=false){clearInterval(simTimer);closeCoach();paused=fal
     if(testState==='testing')started+=Date.now()-restStarted;
     const cleared=window.RestGame?.stop()||0;
     const gameSecs=window.RestGame?.getDuration?.()||0;
-    if(gameSecs>0)window.pushGameSession?.(gameSecs);
+    const gameScore=window.RestGame?.getScore?.()||0;
+    if(gameSecs>0||gameScore>0)window.pushGameSession?.(gameSecs,gameScore);
     $('coachRest').textContent='休息一下';
     setCoachActionsDisabled(false);
     $('submit').disabled=!submitted&&selected<0;$('nextTest').disabled=false;
-    closeCoach(true);toast(reason==='gameover'?('本局结束 · 先完成一题再继续'+(cleared>0?' · 躲过 '+cleared+' 个':'')):('休息结束，可以继续'+(cleared>0?' · 躲过 '+cleared+' 个':'')));
+    closeCoach(true);toast(reason==='gameover'?('本局结束 · 先完成一题再继续'+(cleared>0?' · 得分 '+cleared+' 分':'')):('休息结束，可以继续'+(cleared>0?' · 得分 '+cleared+' 分':'')));
   }
   function startRest(){
     if(restActive||paused)return;
@@ -1311,8 +1312,8 @@ function reset(simulation=false){clearInterval(simTimer);closeCoach();paused=fal
 (function(){
   const stateKey='learning-dashboard-state-v1',todayKey=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})(),feedbackKey='learning-dashboard-answer-feedback-v1';
   let answerFeedback={},roundGoal=5,roundCount=0,day=todayKey,dayCount=0,replaying=false,replayQueue=[],activePause='',pauseStartedAt=0,lastActivity=Date.now(),showAll=false,selectedChartIndex=-1,chartDotMode='show',hoverIndex=-1,toastTimer=0,sessionStartRecord=0,recordsFilter='all';
-  const saveState=()=>{try{localStorage.setItem(stateKey,JSON.stringify({records,weights:['wm','wf','wr'].map(id=>+$(id).value),isEasy,roundGoal,roundCount,dayCount,day,updatedAt:Date.now()}))}catch{}};
-  try{const saved=JSON.parse(localStorage.getItem(stateKey)||'null');if(saved&&Array.isArray(saved.records)){records=saved.records;isEasy=!!saved.isEasy;roundGoal=[3,5,7,9,10].includes(+saved.roundGoal)?+saved.roundGoal:5;day=saved.day===todayKey?todayKey:todayKey;roundCount=saved.day===todayKey?Number(saved.roundCount)||0:0;dayCount=saved.day===todayKey?Number(saved.dayCount)||0:0;if(Array.isArray(saved.weights))saved.weights.forEach((v,i)=>{const el=$(['wm','wf','wr'][i]);if(el)el.value=String(Math.max(0,Math.min(100,Number(v)||0)))})}}catch{};
+  const saveState=()=>{try{localStorage.setItem(stateKey,JSON.stringify({weights:['wm','wf','wr'].map(id=>+$(id).value),isEasy,roundGoal,roundCount,dayCount,day,updatedAt:Date.now()}))}catch{}};
+  try{const saved=JSON.parse(localStorage.getItem(stateKey)||'null');if(saved){isEasy=!!saved.isEasy;roundGoal=[3,5,7,9,10].includes(+saved.roundGoal)?+saved.roundGoal:5;day=saved.day===todayKey?todayKey:todayKey;roundCount=saved.day===todayKey?Number(saved.roundCount)||0:0;dayCount=saved.day===todayKey?Number(saved.dayCount)||0:0;if(Array.isArray(saved.weights))saved.weights.forEach((v,i)=>{const el=$(['wm','wf','wr'][i]);if(el)el.value=String(Math.max(0,Math.min(100,Number(v)||0)))})}}catch{};
   try{answerFeedback=JSON.parse(localStorage.getItem(feedbackKey)||'{}');if(!answerFeedback||typeof answerFeedback!=='object'||Array.isArray(answerFeedback))answerFeedback={}}catch{answerFeedback={}}
   const GOAL_LEVELS=[{name:'Low',count:3,difficulty:1},{name:'Medium',count:5,difficulty:2},{name:'High',count:7,difficulty:3},{name:'Advanced',count:9,difficulty:4},{name:'Extra High',count:10,difficulty:5}];
   let goalLevel=GOAL_LEVELS.findIndex(l=>l.count===roundGoal);if(goalLevel<0)goalLevel=1;targetDifficulty=GOAL_LEVELS[goalLevel].difficulty;
@@ -1422,7 +1423,7 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
   updateEventsWhenReady();
 })();
 </script><script>
-/* 休息小游戏：圆球跑酷。碰撞体积 + 8 级关卡 + 3 条命 + 本局结束。暴露 window.RestGame。 */
+/* 休息小游戏：圆球跑酷（增强版）。金币收集 + 二段跳 + 连击 + 护盾 + 粒子特效。暴露 window.RestGame。 */
 (function(){
   const canvas=$('restGame'),wrap=$('coachGame'),scoreEl=$('gameScore');
   if(!canvas||!wrap||!scoreEl)return;
@@ -1435,11 +1436,12 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     wide:{w:42,boxes:[{dx:0,w:42,h:[22,28]}]},
     double:{w:38,boxes:[{dx:0,w:14,h:[24,32]},{dx:24,w:14,h:[24,32]}]},
     spike:{w:12,boxes:[{dx:2,w:8,h:[26,26],pad:0}]},
-    moving:{w:18,boxes:[{dx:0,w:18,h:[38,38]}],moving:true}
+    moving:{w:18,boxes:[{dx:0,w:18,h:[38,38]}],moving:true},
+    bird:{w:20,boxes:[{dx:0,w:20,h:18,flyY:26}],fly:true}
   };
   const rnd=(a,b)=>a+Math.random()*(b-a);
-  let running=false,raf=0,last=0,cleared=0,obstacles=[],width=0,height=0,ground=0,dash=0,startT=0;
-  let lives=5,invulnUntil=0,shakeUntil=0,lastType=null,DEBUG=false,lastDuration=0;
+  let running=false,raf=0,last=0,cleared=0,coinsTaken=0,score=0,combo=0,obstacles=[],coins=[],shields=[],particles=[],width=0,height=0,ground=0,dash=0,startT=0;
+  let lives=5,invulnUntil=0,shakeUntil=0,lastType=null,DEBUG=false,lastDuration=0,airJumps=0,shield=false,sprinting=false;
   let ball={x:BALL_X,y:0,vy:0,onGround:true,flash:0};
   function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath()}
   function size(){
@@ -1449,15 +1451,15 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
       const ratio=width?w/width:1;
       canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
       ctx.setTransform(dpr,0,0,dpr,0,0);
-      if(ratio!==1)obstacles.forEach(ob=>ob.x*=ratio);
+      if(ratio!==1){obstacles.forEach(ob=>ob.x*=ratio);coins.forEach(c=>c.x*=ratio);shields.forEach(s=>s.x*=ratio)}
       width=w;height=h;ground=h-24;
       if(ball.onGround)ball.y=ground-BALL_R;
     }
     return true;
   }
   function pickType(){
-    const pool=['low','tall','wide','double','spike','moving'];
-    const w={low:4,tall:3,wide:2,double:2,spike:2,moving:1};
+    const pool=['low','tall','wide','double','spike','moving','bird'];
+    const w={low:4,tall:3,wide:2,double:2,spike:2,moving:1,bird:2};
     let cand=pool.filter(t=>t!==lastType);
     if(!cand.length)cand=pool;
     const total=cand.reduce((s,t)=>s+(w[t]||1),0);
@@ -1465,16 +1467,32 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     for(const t of cand){r-=w[t]||1;if(r<=0){lastType=t;return t}}
     lastType=cand[cand.length-1];return lastType;
   }
+  function spawnCoins(ob){
+    const x0=ob.x+ob.w,p=Math.random();
+    if(p<0.45){for(let i=0;i<3;i++)coins.push({x:x0+30+i*38,y:ground-26,r:6,taken:false,phase:rnd(0,6.28)})}
+    else if(p<0.8){const ys=[ground-22,ground-50,ground-68,ground-48];for(let i=0;i<4;i++)coins.push({x:x0+26+i*36,y:ys[i],r:6,taken:false,phase:rnd(0,6.28)})}
+    else{coins.push({x:x0+ob.gap/2,y:ground-72,r:6,taken:false,phase:rnd(0,6.28)})}
+  }
   function spawn(){
     const type=pickType(),def=TYPES[type];
-    obstacles.push({x:width+20,type,w:def.w,boxes:def.boxes.map(b=>({...b,h:rnd(b.h[0],b.h[1]),lift:0})),gap:rnd(280,420),hit:false,passed:false,phase:rnd(0,6.28)});
+    const ob={x:width+20,type,w:def.w,boxes:def.boxes.map(b=>({...b,h:rnd(b.h[0],b.h[1]),lift:0})),gap:rnd(280,420),hit:false,passed:false,phase:rnd(0,6.28)};
+    obstacles.push(ob);
+    if(Math.random()<0.65)spawnCoins(ob);
+    if(Math.random()<0.12)shields.push({x:ob.x+ob.gap/2,y:ground-40,r:11,taken:false});
   }
   function updateHUD(){
-    $('gameLives').textContent='♥'.repeat(lives)+'♡'.repeat(Math.max(0,5-lives));
-    $('gameLives').setAttribute('aria-label','剩余生命 '+lives);
-    scoreEl.textContent='已躲过 '+cleared+' 个';
+    $('gameLives').textContent=(shield?'🛡':'')+'♥'.repeat(lives)+'♡'.repeat(Math.max(0,5-lives));
+    $('gameLives').setAttribute('aria-label','剩余生命 '+lives+(shield?' · 有护盾':''));
+    scoreEl.textContent='分数 '+score+(combo>=2?' · 连击 x'+combo:'');
   }
-  function jump(){if(running&&ball.onGround){ball.vy=JUMP;ball.onGround=false}}
+  function puff(x,y,color,n,spread){
+    for(let i=0;i<n;i++){const life=rnd(280,520);particles.push({x,y,vx:rnd(-spread,spread),vy:rnd(-spread*1.5,-spread*0.2),life,max:life,color,r:rnd(1.5,3.5)})}
+  }
+  function jump(){
+    if(!running)return;
+    if(ball.onGround){ball.vy=JUMP;ball.onGround=false;airJumps=1;puff(BALL_X,ground-BALL_R,'#9bb8a6',6,90)}
+    else if(airJumps<2){ball.vy=JUMP*0.85;airJumps=2;puff(BALL_X,ball.y,'#9bb8a6',5,80)}
+  }
   function endGame(){
     if(!running)return;
     lastDuration=Math.max(0,Math.round((performance.now()-startT)/1000));
@@ -1482,31 +1500,60 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     if(raf){cancelAnimationFrame(raf);raf=0}
     window.finishCoachRest?.('gameover');
   }
+  function hitObstacle(now){
+    if(now<invulnUntil)return;
+    if(shield){shield=false;invulnUntil=now+1000;puff(BALL_X,ball.y,'#4aa3df',14,140);updateHUD();return}
+    lives--;invulnUntil=now+1100;shakeUntil=now+180;ball.flash=now;combo=0;puff(BALL_X,ball.y,'#d98e63',10,120);updateHUD();
+    if(lives<=0){endGame();return}
+  }
   function collide(now){
     for(const ob of obstacles){
       if(ob.hit)continue;
       for(const box of ob.boxes){
         const pad=box.pad??2;
-        const h=box.h+(box.lift||0);
-        const left=ob.x+box.dx+pad,right=ob.x+box.dx+box.w-pad,top=ground-h,bottom=ground;
+        const h=box.h+(box.lift||0),fy=box.flyY||0;
+        const left=ob.x+box.dx+pad,right=ob.x+box.dx+box.w-pad,top=ground-fy-h,bottom=ground-fy;
         const nx=Math.max(left,Math.min(ball.x,right)),ny=Math.max(top,Math.min(ball.y,bottom));
         const dx=ball.x-nx,dy=ball.y-ny;
-        if(dx*dx+dy*dy<=BALL_R*BALL_R){
-          ob.hit=true;
-          if(now>=invulnUntil){
-            lives--;invulnUntil=now+1100;shakeUntil=now+180;ball.flash=now;updateHUD();
-            if(lives<=0){endGame();return}
-          }
-          break;
-        }
+        if(dx*dx+dy*dy<=BALL_R*BALL_R){ob.hit=true;hitObstacle(now);break}
       }
       if(!running)return;
     }
+    for(const c of coins){
+      if(c.taken)continue;
+      const dx=ball.x-c.x,dy=ball.y-c.y,rr=BALL_R+c.r;
+      if(dx*dx+dy*dy<=rr*rr){c.taken=true;coinsTaken++;const mult=1+Math.min(combo,20)*0.1;score+=Math.round(10*mult);combo++;puff(c.x,c.y,'#f0b429',8,100);updateHUD()}
+    }
+    for(const s of shields){
+      if(s.taken)continue;
+      const dx=ball.x-s.x,dy=ball.y-s.y,rr=BALL_R+s.r;
+      if(dx*dx+dy*dy<=rr*rr){s.taken=true;shield=true;puff(s.x,s.y,'#4aa3df',12,120);updateHUD()}
+    }
   }
-  function step(dist,now){for(const ob of obstacles)ob.x-=dist;collide(now)}
+  function step(dist,now){
+    for(const ob of obstacles)ob.x-=dist;
+    for(const c of coins)c.x-=dist;
+    for(const s of shields)s.x-=dist;
+    collide(now);
+  }
   function draw(now){
     ctx.clearRect(0,0,width,height);
-    ctx.fillStyle='#eef7f0';ctx.fillRect(0,0,width,height);
+    const sky=ctx.createLinearGradient(0,0,0,ground);
+    sky.addColorStop(0,'#d9eefb');sky.addColorStop(1,'#f2faf4');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
+    ctx.fillStyle='#d8e7da';ctx.fillRect(0,ground,width,height-ground);
+    const cloudOff=(dash*0.06)%690;
+    ctx.fillStyle='rgba(255,255,255,.85)';
+    for(let i=0;i<3;i++){const cx=((i*230)-cloudOff+690)%690-40,cy=24+i*20;ctx.beginPath();ctx.arc(cx,cy,15,0,Math.PI*2);ctx.arc(cx+18,cy-6,12,0,Math.PI*2);ctx.arc(cx+34,cy,14,0,Math.PI*2);ctx.fill()}
+    const hillOff=(dash*0.12)%600;
+    ctx.fillStyle='#dcecdf';
+    for(let i=0;i<3;i++){const hx=((i*200)-hillOff+600)%600-80;ctx.beginPath();ctx.arc(hx,ground,92,Math.PI,0);ctx.fill()}
+    ctx.fillStyle='#c6ddcb';
+    for(let i=0;i<3;i++){const hx=((i*200+110)-hillOff+600)%600-80;ctx.beginPath();ctx.arc(hx,ground,58,Math.PI,0);ctx.fill()}
+    ctx.fillStyle='rgba(20,61,54,.78)';ctx.font='700 15px "Segoe UI",sans-serif';ctx.textAlign='right';ctx.textBaseline='top';
+    ctx.fillText('得分 '+score,width-12,10);
+    if(combo>=2){ctx.fillStyle='#d98e63';ctx.fillText('连击 x'+combo,width-12,30)}
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
     const shaking=now<shakeUntil&&!reduced;
     ctx.save();
     if(shaking)ctx.translate((Math.random()*2-1)*2,(Math.random()*2-1)*2);
@@ -1515,10 +1562,16 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     for(const ob of obstacles){
       ctx.globalAlpha=ob.hit?0.45:1;
       for(const box of ob.boxes){
-        const h=box.h+(box.lift||0),x=ob.x+box.dx,y=ground-h;
+        const h=box.h+(box.lift||0),fy=box.flyY||0,x=ob.x+box.dx,y=ground-fy-h;
         if(ob.type==='spike'){
           ctx.fillStyle='#c39b61';ctx.strokeStyle='#8f6737';ctx.lineWidth=1;
           ctx.beginPath();ctx.moveTo(x,ground);ctx.lineTo(x+box.w/2,y);ctx.lineTo(x+box.w,ground);ctx.closePath();ctx.fill();ctx.stroke();
+        }else if(ob.type==='bird'){
+          const cx=x+box.w/2,cy=y+h/2,flap=Math.sin(now/120+ob.phase)*5;
+          ctx.fillStyle='#7c9db5';ctx.strokeStyle='#55738c';ctx.lineWidth=1;
+          ctx.beginPath();ctx.ellipse(cx,cy,box.w/2,h/2,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+          ctx.fillStyle='#5b7a92';ctx.beginPath();ctx.moveTo(cx-1,cy-1);ctx.lineTo(cx-9,cy-7-flap);ctx.lineTo(cx-9,cy+2);ctx.closePath();ctx.fill();
+          ctx.fillStyle='#f0b429';ctx.beginPath();ctx.moveTo(x,cy);ctx.lineTo(x-5,cy-2);ctx.lineTo(x-5,cy+2);ctx.closePath();ctx.fill();
         }else{
           ctx.fillStyle='#c39b61';ctx.strokeStyle='#8f6737';ctx.lineWidth=1;
           rr(x,y,box.w,h,4);ctx.fill();ctx.stroke();
@@ -1526,13 +1579,31 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
       }
     }
     ctx.globalAlpha=1;
+    for(const c of coins)if(!c.taken){
+      const bob=Math.sin(now/300+c.phase)*2;
+      ctx.fillStyle='#f0b429';ctx.strokeStyle='#c98a12';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(c.x,c.y+bob,c.r,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#fff3c4';ctx.beginPath();ctx.arc(c.x-2,c.y+bob-2,c.r*0.35,0,Math.PI*2);ctx.fill();
+    }
+    for(const s of shields)if(!s.taken){
+      ctx.fillStyle='#4aa3df';ctx.strokeStyle='#2f6fa0';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x,s.y,s.r*0.45,0,Math.PI*2);ctx.fill();
+    }
     const hgt=Math.max(0,ground-BALL_R-ball.y),shadowScale=Math.max(.4,1-hgt/90);
     ctx.fillStyle='rgba(23,133,104,'+(0.18*shadowScale).toFixed(3)+')';
     ctx.beginPath();ctx.ellipse(BALL_X,ground,10*shadowScale,3.5*shadowScale,0,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=ball.flash&&now-ball.flash<FLASH?'#c39b61':'#178568';
     ctx.beginPath();ctx.arc(BALL_X,ball.y,BALL_R,0,Math.PI*2);ctx.fill();
+    if(shield){ctx.strokeStyle='rgba(74,163,223,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(BALL_X,ball.y,BALL_R+6,0,Math.PI*2);ctx.stroke()}
     if(now<invulnUntil){ctx.strokeStyle='rgba(217,142,99,.85)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(BALL_X,ball.y,BALL_R+3,0,Math.PI*2);ctx.stroke()}
     if(!reduced){ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=2;const rot=dash/BALL_R;ctx.beginPath();ctx.arc(BALL_X,ball.y,BALL_R*0.55,rot,rot+Math.PI*0.8);ctx.stroke()}
+    if(sprinting){ctx.strokeStyle='rgba(23,133,104,.32)';ctx.lineWidth=1.5;for(let i=0;i<4;i++){const yy=ground-8-i*6;ctx.beginPath();ctx.moveTo(BALL_X-18,yy);ctx.lineTo(BALL_X-46-i*9,yy);ctx.stroke()}}
+    for(const p of particles){
+      ctx.globalAlpha=Math.max(0,p.life/p.max);
+      ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalAlpha=1;
     ctx.restore();
     if(DEBUG){
       for(const ob of obstacles)for(const box of ob.boxes){
@@ -1551,9 +1622,12 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     const dt=Math.min(32,now-last)/1000;last=now;
     if(!size())return;
     let speed=160+((now-startT)/1000)*3.5;
+    if(sprinting)speed*=1.6;
     if(reduced)speed*=0.85;
-    if(!ball.onGround){ball.vy+=GRAVITY*dt;ball.y+=ball.vy*dt;if(ball.y>=ground-BALL_R){ball.y=ground-BALL_R;ball.vy=0;ball.onGround=true}}
+    if(!ball.onGround){ball.vy+=GRAVITY*dt;ball.y+=ball.vy*dt;if(ball.y>=ground-BALL_R){ball.y=ground-BALL_R;ball.vy=0;ball.onGround=true;airJumps=0;puff(BALL_X,ground-BALL_R,'#9bb8a6',4,70)}}
     for(const ob of obstacles)if(ob.type==='moving')for(const box of ob.boxes)box.lift=6+Math.sin(now/260+ob.phase)*6;
+    for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=320*dt;p.life-=dt*1000}
+    particles=particles.filter(p=>p.life>0);
     dash+=speed*dt;
     const dist=speed*dt;
     const steps=dist>8?2:1;
@@ -1562,16 +1636,18 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     const lastOb=obstacles[obstacles.length-1];
     if(!lastOb)spawn();else if(lastOb.x<width-lastOb.gap)spawn();
     obstacles=obstacles.filter(ob=>ob.x>-60);
+    coins=coins.filter(c=>c.x>-40&&!c.taken);
+    shields=shields.filter(s=>s.x>-40&&!s.taken);
     let scored=false;
-    for(const ob of obstacles){if(!ob.passed&&!ob.hit&&ob.x+ob.w<BALL_X-BALL_R){ob.passed=true;cleared++;scored=true}}
-    if(scored)scoreEl.textContent='已躲过 '+cleared+' 个';
+    for(const ob of obstacles){if(!ob.passed&&!ob.hit&&ob.x+ob.w<BALL_X-BALL_R){ob.passed=true;const mult=1+Math.min(combo,20)*0.1;score+=Math.round(5*mult);cleared++;combo++;scored=true}}
+    if(scored)updateHUD();
     draw(now);
   }
   function start(){
     stop();
     running=true;last=0;
-    lives=5;cleared=0;invulnUntil=0;shakeUntil=0;lastType=null;dash=0;startT=performance.now();lastDuration=0;
-    obstacles=[];
+    lives=5;cleared=0;coinsTaken=0;score=0;combo=0;invulnUntil=0;shakeUntil=0;lastType=null;dash=0;startT=performance.now();lastDuration=0;airJumps=0;shield=false;sprinting=false;
+    obstacles=[];coins=[];shields=[];particles=[];
     wrap.hidden=false;
     ball={x:BALL_X,y:ground-BALL_R,vy:0,onGround:true,flash:0};
     updateHUD();size();raf=requestAnimationFrame(frame);
@@ -1579,12 +1655,13 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
   function stop(){
     if(raf){cancelAnimationFrame(raf);raf=0}
     if(running)lastDuration=Math.max(0,Math.round((performance.now()-startT)/1000));
-    const c=cleared;running=false;last=0;wrap.hidden=true;return c;
+    const s=score;running=false;last=0;wrap.hidden=true;return s;
   }
-  const getScore=()=>cleared;
+  const getScore=()=>score;
   const getDuration=()=>lastDuration;
   canvas.addEventListener('pointerdown',e=>{if(e.button===0&&e.isPrimary)jump()});
-  document.addEventListener('keydown',e=>{if(!running)return;if(e.code!=='Space'&&e.code!=='ArrowUp')return;if(e.repeat)return;const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;e.preventDefault();jump()});
+  document.addEventListener('keydown',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){sprinting=true;return}if(!running)return;if(e.code!=='Space'&&e.code!=='ArrowUp')return;if(e.repeat)return;const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;e.preventDefault();jump()});
+  document.addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight')sprinting=false});
   let resizeT=0;const onResize=()=>{clearTimeout(resizeT);resizeT=setTimeout(()=>{if(running)size()},150)};
   window.addEventListener('resize',onResize);
   if(window.ResizeObserver)new ResizeObserver(onResize).observe(canvas);
@@ -1593,6 +1670,7 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     set debugHitboxes(v){DEBUG=v}
   };
 })();
+
 </script><script>
 /* ===== 云端接入：Supabase（用户名+密码，纯 fetch，无 SDK）=====
    使用前把下方 SUPABASE_URL 填成你的项目地址（Settings→API 的 Project URL）。 */
@@ -1629,7 +1707,7 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     try{ localStorage.setItem(AUTH_KEY, JSON.stringify(session)); }catch{}
     return session;
   }
-  function logout(){ session = null; try{ localStorage.removeItem(AUTH_KEY); }catch{} updateAuthUI(); toast('已退出登录'); }
+  function logout(){ session = null; try{ localStorage.removeItem(AUTH_KEY); }catch{} records.length=0; if(window.refreshAll) window.refreshAll(); updateAuthUI(); openAuthModal(); $('authClose').style.display='none'; $('authLogout').hidden=true; toast('已退出登录'); }
 
   function applyCloudRows(rows){
     records.length = 0;
@@ -1648,8 +1726,7 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
   async function pullRecords(){
     if(!session) return;
     try{
-      let rows = await dataFetch('/rest/v1/attempts?select=*&order=at.asc', 'GET');
-      if(!rows.length && records.length){ for(const rec of records){ try{ await pushAttempt(rec); }catch{} } rows = await dataFetch('/rest/v1/attempts?select=*&order=at.asc', 'GET'); }
+      const rows = await dataFetch('/rest/v1/attempts?select=*&order=at.asc', 'GET');
       applyCloudRows(rows);
       toast('云端记录已同步');
     }catch(e){ toast('同步失败：'+(e.message||'网络错误')); }
@@ -1681,7 +1758,7 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     if(records.length > len && session) pushAttempt(records.at(-1)).catch(()=>{});
     return res;
   };
-  window.pushGameSession=async function(seconds){if(!session||!seconds)return;try{await dataFetch('/rest/v1/game_sessions','POST',{user_id:session.user_id,seconds})}catch{}};
+  window.pushGameSession=async function(seconds,score){if(!session||(!seconds&&!score))return;try{await dataFetch('/rest/v1/game_sessions','POST',{user_id:session.user_id,seconds,score:score||0})}catch{}};
   window.fetchLeaderboard=async function(kind){return dataFetch('/rest/v1/rpc/leaderboard','POST',{kind})};
   window.getUsername=()=>session?session.username:null;window.clearCloudRecords=async function(){if(!session)return;try{await dataFetch('/rest/v1/attempts?user_id=eq.'+session.user_id,'DELETE');await dataFetch('/rest/v1/game_sessions?user_id=eq.'+session.user_id,'DELETE')}catch{}};
 
@@ -1697,13 +1774,13 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
     $('authButton').onclick = openAuthModal;
 
     const modal = document.createElement('div'); modal.className='auth-backdrop'; modal.id='authModal'; modal.hidden=true;
-    modal.innerHTML = '<div class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="authTitle"><button class="coach-close" id="authClose" type="button" aria-label="关闭">×</button><h3 id="authTitle">登录学有度</h3><p class="auth-sub">注册后，作答记录会同步到云端。</p><label>用户名<input id="authUsername" type="text" autocomplete="username" placeholder="3–20 位字母或数字"></label><label>密码<input id="authPassword" type="password" autocomplete="current-password" placeholder="至少 6 位"></label><div class="auth-err" id="authError" role="alert"></div><div class="auth-actions"><button class="btn" id="authSubmit" type="button">登录</button><button class="btn secondary" id="authToggleMode" type="button">没有账号？注册</button><button class="btn secondary" id="authLogout" type="button" hidden>退出登录</button></div></div>';
+    modal.innerHTML = '<div class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="authTitle"><button class="coach-close" id="authClose" type="button" aria-label="关闭" style="display:none">×</button><h3 id="authTitle">登录学有度</h3><p class="auth-sub">进入前请先登录或注册，作答记录将同步到云端。</p><label>用户名<input id="authUsername" type="text" autocomplete="username" placeholder="3–20 位字母或数字"></label><label>密码<input id="authPassword" type="password" autocomplete="current-password" placeholder="至少 6 位"></label><div class="auth-err" id="authError" role="alert"></div><div class="auth-actions"><button class="btn" id="authSubmit" type="button">登录</button><button class="btn secondary" id="authToggleMode" type="button">没有账号？注册</button><button class="btn secondary" id="authLogout" type="button" hidden>退出登录</button></div></div>';
     document.body.append(modal);
 
     let mode = 'login';
-    function syncMode(){ $('authTitle').textContent = mode==='login'?'登录学有度':'注册学有度'; $('authSubmit').textContent = mode==='login'?'登录':'注册'; $('authToggleMode').textContent = mode==='login'?'没有账号？注册':'已有账号？登录'; $('authLogout').hidden = !(mode==='login' && session); }
-    $('authClose').onclick = ()=>{ modal.hidden=true; };
-    modal.addEventListener('click', e=>{ if(e.target===modal) modal.hidden=true; });
+    function syncMode(){ $('authTitle').textContent = mode==='login'?'登录学有度':'注册学有度'; $('authSubmit').textContent = mode==='login'?'登录':'注册'; $('authToggleMode').textContent = mode==='login'?'没有账号？注册':'已有账号？登录'; $('authLogout').hidden = !(mode==='login' && session); $('authClose').style.display = session ? '' : 'none'; }
+    $('authClose').onclick = ()=>{ if(session) modal.hidden=true; };
+    modal.addEventListener('click', e=>{ if(e.target===modal && session) modal.hidden=true; });
     $('authToggleMode').onclick = ()=>{ mode = mode==='login'?'register':'login'; $('authError').textContent=''; syncMode(); };
     $('authLogout').onclick = ()=>{ modal.hidden=true; logout(); };
     $('authSubmit').onclick = async ()=>{
@@ -1727,6 +1804,7 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
   buildUI();
   updateAuthUI();
   loadQuestions();
+  if(!session){ openAuthModal(); } else { pullRecords(); }
 })();
 </script><script>
 /* 鼠标交互升级：侧边栏光斑 / 导航胶囊 / 入口卡片倾斜（仅精细指针设备，非减少动效） */
@@ -1804,7 +1882,7 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
   let lbKind='points';
   function fmtVal(row){
     if(lbKind==='accuracy')return row.accuracy+'%';
-    if(lbKind==='game')return row.game_seconds+' 秒';
+    if(lbKind==='game')return row.high_score+' 分';
     return row.points+' 分';
   }
   function render(rows){
