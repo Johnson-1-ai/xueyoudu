@@ -969,12 +969,12 @@ body.modal-locked{overflow:hidden}
       <div class="record-tabs" role="tablist" aria-label="排行榜类型">
         <button class="record-tab" id="lbTabPoints" role="tab" aria-selected="true" data-lb-kind="points">积分榜</button>
         <button class="record-tab" id="lbTabRank" role="tab" aria-selected="false" data-lb-kind="rank">段位榜</button>
-        <button class="record-tab" id="lbTabTime" role="tab" aria-selected="false" data-lb-kind="time">时间榜</button>
+        <button class="record-tab" id="lbTabScore" role="tab" aria-selected="false" data-lb-kind="score">得分榜</button>
         <button class="record-tab" id="lbTabCoins" role="tab" aria-selected="false" data-lb-kind="coins">金币财富榜</button>
       </div>
       <div class="my-rank" id="myRank">未登录 · 登录后可看自己的排名</div>
       <ol class="leaderboard" id="leaderboardList"></ol>
-      <div class="leaderboard-note">积分=答题得分 · 段位=刷题量+答对数 · 时间榜=游戏总时长 · 金币财富榜=游戏累计金币。</div>
+      <div class="leaderboard-note">积分=答题得分 · 段位=巅峰分 · 得分榜=单局最高分 · 金币财富榜=游戏累计金币。</div>
     </section>
   </section>
 
@@ -1004,7 +1004,7 @@ body.modal-locked{overflow:hidden}
     </section>
   </section>
 
-  <div class="foot" id="globalFoot">学习辅助原型 · 不采集摄像头或麦克风数据 · 状态为行为估算，不用于诊断或学生排名 · 无需联网 · 当前题库：初中数学 · <span id="versionTag">v14.38</span></div>
+  <div class="foot" id="globalFoot">学习辅助原型 · 不采集摄像头或麦克风数据 · 状态为行为估算，不用于诊断或学生排名 · 无需联网 · 当前题库：初中数学 · <span id="versionTag">v14.39</span></div>
   <section class="page-view" id="gameView" hidden>
     <div class="game-page">
       <div class="game-side">
@@ -1131,7 +1131,7 @@ const MATH_QUESTION_BANK = [
 ];
 </script>
 <script>const BKT_P={L0:.5,T:.15,G:.25,S:.15};
-const kpModel={};let ability=3;let targetDifficulty=2;const VERSION='14.38';
+const kpModel={};let ability=3;let targetDifficulty=2;const VERSION='14.39';
 let usedQids=new Set();
 function evaluateAnswerState(isCorrect,timeSpent,kp,difficulty){
   kp=kp||'综合';
@@ -2156,18 +2156,17 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
   const tabs=[...document.querySelectorAll('#leaderboardView .record-tab')];
   let lbKind='points';
   function rankNameXp(rs){const r=window.rankForXp?window.rankForXp(Number(rs)||0):null;return r?(r.icon+' '+r.name):'🥉 青铜'}
-  function fmtTime(s){s=Number(s)||0;if(s<60)return s+' 秒';const m=Math.floor(s/60);return m+' 分'+(s%60?' '+(s%60)+' 秒':'')}
   function sortRows(rows){
     return rows.slice().sort((a,b)=>{
       if(lbKind==='rank')return (Number(b.rank_score)||0)-(Number(a.rank_score)||0);
       if(lbKind==='points')return (Number(b.points)||0)-(Number(a.points)||0);
-      if(lbKind==='time')return (Number(b.game_seconds)||0)-(Number(a.game_seconds)||0);
+      if(lbKind==='score')return (Number(b.game_high_score)||0)-(Number(a.game_high_score)||0);
       return (Number(b.game_coins)||0)-(Number(a.game_coins)||0);
     }).map((r,i)=>({...r,rank:i+1}));
   }
   function fmtVal(row){
     if(lbKind==='rank')return rankNameXp(row.rank_score);
-    if(lbKind==='time')return fmtTime(row.game_seconds);
+    if(lbKind==='score')return (row.game_high_score||0)+' 分';
     if(lbKind==='coins')return (row.game_coins||0)+' 金币';
     return (row.points||0)+' 分';
   }
