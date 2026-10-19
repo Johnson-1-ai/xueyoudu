@@ -958,7 +958,7 @@ body.modal-locked{overflow:hidden}
     </section>
   </section>
 
-  <div class="foot" id="globalFoot">学习辅助原型 · 不采集摄像头或麦克风数据 · 状态为行为估算，不用于诊断或学生排名 · 无需联网 · 当前题库：初中数学 · <span id="versionTag">v14.8</span></div>
+  <div class="foot" id="globalFoot">学习辅助原型 · 不采集摄像头或麦克风数据 · 状态为行为估算，不用于诊断或学生排名 · 无需联网 · 当前题库：初中数学 · <span id="versionTag">v14.9</span></div>
 </main>
 <div id="toast" role="status"></div>
 <div class="streak-celebration" id="streakCelebration" hidden role="dialog" aria-modal="true" aria-labelledby="celebrationTitle">
@@ -1062,7 +1062,7 @@ const MATH_QUESTION_BANK = [
 ];
 </script>
 <script>const BKT_P={L0:.5,T:.15,G:.25,S:.15};
-const kpModel={};let ability=3;let targetDifficulty=2;const VERSION='14.8';
+const kpModel={};let ability=3;let targetDifficulty=2;const VERSION='14.9';
 let usedQids=new Set();
 function evaluateAnswerState(isCorrect,timeSpent,kp,difficulty){
   kp=kp||'综合';
@@ -1755,10 +1755,10 @@ function startRound(){roundCount=0;sessionStartRecord=records.length;usedQids.cl
   window.add = function(...args){
     const len = records.length;
     const res = baseAdd.apply(this, args);
-    if(records.length > len && session) pushAttempt(records.at(-1)).catch(()=>{});
+    if(records.length > len && session) pushAttempt(records.at(-1)).catch(e=>{ toast('云端同步失败：'+(e.message||'网络错误')); });
     return res;
   };
-  window.pushGameSession=async function(seconds,score){if(!session||(!seconds&&!score))return;try{await dataFetch('/rest/v1/game_sessions','POST',{user_id:session.user_id,seconds,score:score||0})}catch{}};
+  window.pushGameSession=async function(seconds,score){if(!session||(!seconds&&!score))return;try{await dataFetch('/rest/v1/game_sessions','POST',{user_id:session.user_id,seconds,score:score||0})}catch(e){toast('游戏得分同步失败：'+(e.message||'网络错误'))}};
   window.fetchLeaderboard=async function(kind){return dataFetch('/rest/v1/rpc/leaderboard','POST',{kind})};
   window.getUsername=()=>session?session.username:null;window.clearCloudRecords=async function(){if(!session)return;try{await dataFetch('/rest/v1/attempts?user_id=eq.'+session.user_id,'DELETE');await dataFetch('/rest/v1/game_sessions?user_id=eq.'+session.user_id,'DELETE')}catch{}};
 
