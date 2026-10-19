@@ -1,0 +1,1928 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>学有度 · 学习状态仪表盘</title>
+<style>
+:root{
+  --sidebar-w:252px;
+  --ink:#1E2E2A;          /* 深墨文字 */
+  --green:#143D36;        /* 墨绿主色 */
+  --green-2:#0F3029;
+  --paper:#F7F3EA;        /* 暖纸背景 */
+  --paper-2:#FDFBF5;      /* 卡片纸 */
+  --sage:#DCE8DF;         /* 鼠尾草 */
+  --apricot:#D98E63;      /* 杏色 */
+  --apricot-ink:#9C5A32;  /* 杏色文字（对比达标） */
+  --mist:#7C9DB5;         /* 雾蓝 */
+  --muted:#5F6F68;        /* 次要文字 */
+  --line:#E4DECF;         /* 纸上细线 */
+  --focus:#37886c;        /* 与图表一致的专注色 */
+  --fatigue:#c39b61;      /* 与图表一致的疲劳色 */
+  --accuracy:#8999c3;     /* 与图表一致的正确率色 */
+  --serif:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,"SimSun",serif;
+  --sans:"MiSans","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --num:"SFMono-Regular","JetBrains Mono",Consolas,"Roboto Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:
+  radial-gradient(1200px 620px at 88% -12%,#F2EDDF 0%,transparent 62%),
+  radial-gradient(900px 520px at -12% 112%,#E8EFE6 0%,transparent 55%),
+  var(--paper);
+  color:var(--ink);font:15px/1.75 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(30,46,42,.014) 0 1px,transparent 1px 4px);mix-blend-mode:multiply}
+button{font:inherit;color:inherit;cursor:pointer}
+::selection{background:var(--sage);color:var(--ink)}
+:focus-visible{outline:2px solid var(--apricot);outline-offset:3px;border-radius:6px}
+
+/* ---------- 侧栏：节律轨道 ---------- */
+aside{position:fixed;inset:0 auto 0 0;width:var(--sidebar-w);padding:36px 26px;border-right:1px solid var(--line);box-shadow:1px 0 0 rgba(20,61,54,.03);display:flex;flex-direction:column;background:linear-gradient(180deg,rgba(253,251,245,.6),rgba(247,243,234,.2));z-index:5}
+.brand{font-family:var(--serif);font-size:27px;font-weight:600;letter-spacing:.02em;line-height:1.2}
+.brand b{color:var(--green);font-weight:600;margin-right:4px}
+.tag{font-size:10px;letter-spacing:.34em;color:var(--muted);margin-top:10px;text-transform:uppercase}
+nav{margin-top:42px;position:relative}
+nav::before{content:'';position:absolute;left:4px;top:24px;bottom:24px;width:1px;background:linear-gradient(var(--sage),var(--line))}
+nav button{display:flex;align-items:center;gap:13px;width:100%;border:0;background:transparent;padding:12px 12px;min-height:46px;border-radius:11px;color:var(--muted);font:14px var(--sans);text-align:left;position:relative;z-index:1;transition:color .3s}
+nav button .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid #B7BEAC;background:transparent;flex:none;position:relative;z-index:1;transition:.35s}
+nav button small{font-size:10px;letter-spacing:.14em;color:#9AA69E;text-transform:uppercase;margin-left:2px;transition:color .25s,opacity .25s}
+nav button:hover{color:var(--ink)}
+nav button.active{color:var(--green);font-weight:600}
+nav button.active .dot{border-color:var(--green);background:var(--green);box-shadow:0 0 0 5px rgba(20,61,54,.09);animation:breathe 3.4s ease-in-out infinite}
+nav button.active small{color:var(--apricot-ink)}
+.side-note{margin-top:16px;font-size:12px;line-height:2;color:var(--muted)}
+.side-note hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+
+/* ---------- 侧边栏交互装饰 ---------- */
+.nav-pill{position:absolute;left:-12px;right:-12px;top:0;height:46px;border-radius:11px;background:rgba(20,61,54,.055);opacity:0;pointer-events:none;z-index:0;transition:transform .32s cubic-bezier(.22,.61,.36,1),height .32s cubic-bezier(.22,.61,.36,1),opacity .2s}
+.nav-pill.is-visible{opacity:1}
+aside::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .3s;background:radial-gradient(280px circle at var(--mx,50%) var(--my,20%),rgba(55,134,108,.07),transparent 65%)}
+aside:hover::before{opacity:1}
+aside > *{position:relative;z-index:1}
+@media(hover:hover) and (pointer:fine){
+  nav button > span:last-child{transition:transform .3s}
+  nav button:hover > span:last-child{transform:translateX(2px)}
+  nav button:hover .dot{transform:scale(1.15)}
+}
+
+/* ---------- 主区 ---------- */
+main{margin-left:var(--sidebar-w);min-height:100vh;position:relative;z-index:1;padding-bottom:70px}
+.page-view{max-width:1140px;margin:0 auto;padding:52px 56px 20px}
+.eyebrow{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--apricot-ink);font-weight:600}
+.subject-tag{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px}
+.subject-name{font-size:11px;letter-spacing:.18em;color:var(--apricot-ink);font-weight:600}
+.subject-sub{font-size:11px;color:var(--muted)}
+h1{font-family:var(--serif);font-weight:600;letter-spacing:.01em;font-size:46px;line-height:1.22;color:var(--ink);margin:14px 0 0}
+h1 em{font-style:normal;color:var(--green)}
+h2{font-family:var(--serif);font-weight:600;font-size:20px;color:var(--ink)}
+h3{font-family:var(--serif);font-weight:600}
+p{color:var(--muted);line-height:1.85}
+.lead{font-size:16px;color:var(--muted);max-width:34ch;margin:20px 0 30px}
+
+/* ---------- 按钮 ---------- */
+.btn{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#FBF8F0;border:1px solid var(--green);border-radius:12px;padding:13px 24px;font:600 14px var(--sans);letter-spacing:.02em;transition:.25s;white-space:nowrap}
+.btn::after{content:'';position:absolute;inset:-40% -20%;z-index:-1;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.22) 50%,transparent 70%);transform:translateX(-120%) rotate(8deg);transition:transform .55s ease}
+.btn:hover{background:var(--green-2);border-color:var(--green-2);transform:translateY(-1px)}
+.btn:hover::after{transform:translateX(120%) rotate(8deg)}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn.secondary::after{background:linear-gradient(115deg,transparent 30%,rgba(20,61,54,.06) 50%,transparent 70%)}
+button:disabled::after{display:none}
+.btn.secondary{background:transparent;color:var(--ink);border-color:#C9C2B0}
+.btn.secondary:hover{background:rgba(20,61,54,.05);border-color:var(--green);color:var(--green)}
+button:disabled{opacity:.4;cursor:default;transform:none}
+button:disabled:hover{transform:none}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);letter-spacing:.04em}
+.pill::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--focus)}
+
+/* ---------- 首页 Hero ---------- */
+.hero{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:48px;align-items:center}
+.hero-copy,.rhythm-panel{min-width:0}
+.hero-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.effort-wrap{position:relative;display:inline-block}
+.effort-trigger{border:0;background:none;padding:0;color:var(--muted);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;user-select:none;-webkit-user-select:none}
+.effort-trigger b{font-family:var(--num);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.effort-trigger:hover b{color:var(--green)}
+.effort-card{position:absolute;left:0;top:calc(100% + 10px);z-index:40;width:320px;max-width:calc(100vw - 40px);background:var(--paper-2);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:0 12px 40px rgba(20,35,30,.16)}
+.effort-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}
+.effort-level{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--green);letter-spacing:.02em}
+.effort-value{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted)}
+.effort-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+.effort-select-wrap{position:relative}
+.effort-select{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 14px;font-size:12px;color:var(--muted);cursor:pointer}
+.effort-select:hover{border-color:#B9B29C;color:var(--ink)}
+.effort-chev{font-size:10px;color:var(--faint)}
+.effort-menu{position:absolute;left:0;bottom:calc(100% + 6px);z-index:50;min-width:180px;padding:6px;margin:0;list-style:none;background:var(--paper-2);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(20,35,30,.14)}
+.effort-menu li button{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;border:0;background:none;padding:8px 10px;border-radius:8px;font-size:13px;color:var(--ink);text-align:left;cursor:pointer}
+.effort-menu li button:hover{background:#F3F0E4}
+.effort-menu li button.active{color:var(--green);font-weight:600}
+.effort-menu .sub{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.goal-hint{font-size:11.5px;color:var(--apricot-ink);line-height:1.5;margin-top:10px}
+.level-slider{position:relative;width:100%;height:52px;cursor:pointer;touch-action:none;outline:none;user-select:none;-webkit-user-select:none}
+.level-rail{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:18px;border-radius:999px;background:#EAE4D3;overflow:hidden}
+.level-fill{position:relative;height:100%;width:25%;border-radius:999px;background:var(--green);transition:width .18s ease}
+.level-fill.at-max::after{content:'';position:absolute;top:0;bottom:0;left:-40%;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);animation:goalScan 1.2s linear infinite}
+.level-ticks{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;justify-content:space-between}
+.level-tick{width:2px;height:14px;background:#C9C2B0;border-radius:2px}
+.level-thumb{position:absolute;top:50%;left:25%;width:34px;height:34px;border-radius:50%;background:var(--paper-2);border:2px solid var(--green);box-shadow:0 2px 8px rgba(20,61,54,.3);transform:translate(-50%,-50%);transition:left .18s ease}
+.level-slider.dragging .level-thumb,.level-slider.dragging .level-fill{transition:none}
+.level-slider:focus-visible .level-thumb{box-shadow:0 0 0 3px rgba(217,142,99,.4)}
+@keyframes goalPopIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes goalScan{to{transform:translateX(260%)}}
+.round-progress{display:flex;align-items:center;gap:14px;margin-top:20px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.round-progress progress{flex:1;height:3px;accent-color:var(--green);border:0;border-radius:3px}
+.round-progress progress::-webkit-progress-bar{background:#EAE4D3;border-radius:3px}
+.round-progress progress::-webkit-progress-value{background:var(--green);border-radius:3px}
+
+/* 今日节律面板 */
+.rhythm-panel{background:var(--paper-2);border:1px solid var(--line);border-radius:20px;padding:28px 30px 24px;position:relative;overflow:hidden;--ry-focus:#8AD6B6;--ry-focus-edge:#5FAF8D;--ry-fatigue:#F2B7A3;--ry-fatigue-edge:#D98F77;--ry-ring:#4F9C7E;--ry-ring-track:#E6EEE8;--ry-sep:#FBFCF8}
+.rhythm-panel::after{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(217,142,99,.10),transparent 70%);pointer-events:none;z-index:0}
+.rhythm-head,.rhythm-metrics,.rhythm-tip,.rhythm-foot{position:relative;z-index:1}
+.rhythm-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.panel-title{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:9px}
+.panel-title::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--apricot)}
+/* 今日节律：专注/疲劳圆饼 + 正确率外圈环 */
+.pie-layout{display:flex;align-items:center;gap:30px;flex-wrap:wrap;margin-top:14px}
+.pie-wrap{position:relative;width:196px;height:196px;flex:none}
+.rhythm-pie{width:100%;height:100%}
+.acc-ring-track{fill:none;stroke:var(--ry-ring-track);stroke-width:4}
+.acc-ring-arc{fill:none;stroke:var(--ry-ring);stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset .7s ease}
+.pie-bg{fill:#E7E2D4}
+.pie-focus{fill:var(--ry-focus)}
+.pie-fatigue{fill:var(--ry-fatigue);stroke:var(--ry-sep);stroke-width:1.5}
+.acc-callout{position:absolute;top:0;right:-18px;display:flex;flex-direction:column;align-items:flex-end;gap:1px;pointer-events:none;text-align:right;z-index:2;line-height:1.05}
+.acc-callout::before{content:'';position:absolute;left:-13px;bottom:3px;width:14px;height:1px;background:var(--ry-ring);opacity:.35;transform:rotate(35deg)}
+.acc-label{font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.acc-callout .acc-big{font-family:var(--num);font-size:24px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.acc-callout .acc-big small{font-size:13px;color:var(--muted);font-weight:400;letter-spacing:0}
+.acc-empty{font-size:11px;color:var(--muted);line-height:1.5;white-space:nowrap}
+.pie-side{flex:1;min-width:180px;display:flex;flex-direction:column;gap:10px}
+.pie-legend{display:flex;flex-direction:column;gap:6px}
+.lg{display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);padding:7px 11px;border-radius:10px;cursor:pointer}
+.lg b{font-family:var(--num);font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.dot-focus{background:var(--ry-focus-edge)}
+.dot-fatigue{background:var(--ry-fatigue-edge)}
+.dot-accuracy{background:var(--ry-ring)}
+.pie-note{font-size:13px;color:var(--muted);line-height:1.75;margin:0}
+.pie-sum{font-size:11px;color:#9AA69E}
+.metric[data-metric]{cursor:pointer;border-radius:10px;transition:background .2s}
+.metric:focus-visible{box-shadow:inset 0 0 0 2px var(--green)}
+.metric.is-active{background:#F3F0E4}
+.rhythm-panel[data-active="focus"] .metric:not(.metric-focus),.rhythm-panel[data-active="fatigue"] .metric:not(.metric-fatigue),.rhythm-panel[data-active="accuracy"] .metric:not(.metric-accuracy){opacity:.55}
+.rhythm-tip{min-height:34px;margin:12px 0 0;font-size:12px;line-height:1.7;color:var(--muted)}
+.rhythm-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}
+.rhythm-foot .stats{margin:0}
+.rhythm-link{border:0;background:none;padding:0;color:var(--green);font-size:12px;cursor:pointer}
+.rhythm-metrics{position:relative;display:flex;flex-direction:column;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.metric{position:relative;overflow:hidden;min-width:0}
+.metric .label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:normal;line-height:1.5;min-width:0}
+.metric .dot{display:inline-block;width:7px;height:7px;border-radius:50%}
+.metric-fatigue .dot{background:var(--fatigue)}
+.metric-accuracy .dot{background:var(--accuracy)}
+.metric .value{font-family:var(--num);font-size:32px;line-height:1.15;margin:12px 0 9px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.metric .value small{font-size:13px;color:var(--muted);font-weight:400;letter-spacing:0}
+.metric .bar{height:4px;background:#EAE4D3;border-radius:4px;overflow:hidden}
+.metric .bar i{display:block;height:100%;width:0;border-radius:4px;transition:width .7s cubic-bezier(.22,.61,.36,1)}
+.metric-focus .bar i{background:var(--focus)}
+.metric-fatigue .bar i{background:var(--fatigue)}
+.metric-accuracy .bar i{background:var(--accuracy)}
+.metric p{font-size:11px;color:var(--muted);margin:9px 0 0;line-height:1.6;overflow-wrap:anywhere}
+.metric-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:var(--paper-2);border-radius:12px;color:var(--muted);font-size:12px;text-align:center;padding:10px}
+.metric-empty[hidden]{display:none}
+.metric-empty svg{width:100%;max-width:230px;height:40px;opacity:.55}
+.stats{font-size:11px;color:var(--muted);margin:16px 0 0;font-variant-numeric:tabular-nums}
+
+/* 节律带 */
+.rhythm-band{position:relative;margin-top:34px;padding:22px 26px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,#FBF9F1 0%,#F5F1E6 100%);overflow:hidden;isolation:isolate}
+.band-wave{display:none}
+.band-wave path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.bw-1{stroke:var(--focus);stroke-width:1.8;opacity:.9;animation:flow 9s ease-in-out infinite}
+.bw-2{stroke:var(--fatigue);stroke-width:1.2;opacity:.45;animation:flow 11s ease-in-out infinite reverse}
+.bw-3{stroke:var(--accuracy);stroke-width:1.1;opacity:.4;animation:flow 13s ease-in-out infinite}
+.band-copy{position:relative;z-index:1;display:flex;align-items:baseline;justify-content:flex-start;gap:28px;flex-wrap:wrap;padding:0;background:none;border-radius:0;max-width:none}
+.band-copy strong{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:19px;font-weight:600;line-height:1.5;color:var(--ink)}
+.band-copy strong::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--apricot);flex:none}
+.band-copy span{font-size:13px;line-height:1.7;color:var(--muted);max-width:52ch}
+.band-copy strong,.band-copy span{position:relative;z-index:1}
+
+/* 入口卡片 */
+.module-launchers{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
+.module-link{position:relative;overflow:hidden;transform-style:preserve-3d;will-change:transform;display:flex;align-items:center;gap:18px;padding:22px 24px;text-align:left;background:rgba(253,251,245,.7);border:1px solid var(--line);border-radius:16px;color:var(--ink);transition:transform .2s ease-out,border-color .25s,background .25s;min-width:0;transform:perspective(800px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(var(--lift,0))}
+.module-link:hover{border-color:#B9B29C;background:var(--paper-2)}
+.module-link::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .25s;background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%),rgba(55,134,108,.12),transparent 60%)}
+.module-link:hover::before{opacity:1}
+.module-link > *{position:relative;z-index:1}
+.module-link > span:nth-child(2){flex:1;min-width:0}
+.module-icon{display:grid;place-items:center;width:46px;height:46px;flex:none;border-radius:13px;background:var(--sage);color:var(--green);font-size:20px}
+.module-link strong{display:block;font-family:var(--serif);font-size:16px;font-weight:600;margin-bottom:4px}
+.module-link small{color:var(--muted);font-size:12.5px;line-height:1.6}
+.module-link strong,.module-link small{overflow-wrap:anywhere}
+.module-link .arr{margin-left:auto;color:#B7BEAC;font-size:18px;transition:.28s;flex:none}
+.module-link:hover .arr{color:var(--green);transform:translateX(3px)}
+
+/* ---------- 页面头 ---------- */
+.module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:0 0 30px;flex-wrap:wrap}
+.module-head h1{margin-top:10px}
+.module-head p{margin:8px 0 0;max-width:52ch}
+
+/* 卡片 */
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:18px;padding:30px;position:relative}
+.module-actions{display:flex;gap:10px;flex-wrap:wrap}
+.records-entry{margin-top:22px}
+.record-summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.record-summary div{flex:1 1 0;min-width:110px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#FCFAF3}
+.record-summary span{display:block;font-size:12px;color:var(--muted)}
+.record-summary b{display:block;margin-top:4px;font-family:var(--num);font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
+.record-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.record-tab{display:inline-flex;align-items:center;gap:8px;border:0;background:none;padding:10px 14px;font-size:13.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.record-tab span{font-size:11px;color:#9AA69E;font-variant-numeric:tabular-nums}
+.record-tab[aria-selected=true]{color:var(--green);font-weight:600;border-bottom-color:var(--green)}
+
+/* ---------- 练习页 ---------- */
+.practice-signal{position:relative;overflow:hidden;max-width:100%;margin:0 0 18px;padding:14px 20px;background:rgba(253,251,245,.7);border:1px solid var(--line);border-radius:14px;transition:border-color .25s,box-shadow .25s}
+.signal-top,.signal-values{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.signal-top{font-size:12.5px;color:var(--muted)}
+.signal-values{justify-content:flex-start;gap:30px;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.signal-values b{margin-left:8px;color:var(--ink);font:650 15px var(--num);font-variant-numeric:tabular-nums}
+.analysis-status{visibility:hidden;color:var(--green);font-size:11.5px;font-style:italic}
+.analysis-status.active{visibility:visible;animation:analysisText 1.5s ease-in-out both}
+.practice-signal.scanning{border-color:#A9C4B2;box-shadow:0 0 0 3px rgba(55,134,108,.07)}
+.practice-signal.scanning::after{content:'';position:absolute;inset:0 auto 0 -35%;width:30%;background:linear-gradient(90deg,transparent,rgba(55,134,108,.07),transparent);animation:scanSweep 1.5s ease-in-out both}
+.metric.scanning{animation:signalPulse 1.5s ease-in-out both}
+.metric.scanning::after{content:'';position:absolute;inset:0 auto 0 -35%;width:30%;background:linear-gradient(90deg,transparent,rgba(55,134,108,.08),transparent);animation:scanSweep 1.5s ease-in-out both}
+
+.paper{background-color:var(--paper-2);background-image:linear-gradient(rgba(20,61,54,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(20,61,54,.04) 1px,transparent 1px);background-size:26px 26px;border:1px solid var(--line);border-radius:16px;padding:28px 30px;margin-top:20px;position:relative}
+.paper::before{content:'';position:absolute;left:14px;top:0;bottom:0;width:1px;background:linear-gradient(var(--sage),transparent)}
+.paper::after{content:'x²  △';position:absolute;right:16px;bottom:8px;font-family:var(--num);font-size:34px;letter-spacing:.2em;color:rgba(20,61,54,.05);pointer-events:none}
+.paper h3{font-size:21px;line-height:1.75;margin:10px 0 0;color:var(--ink);font-family:var(--serif)}
+.paper .qnum{font-size:11px;letter-spacing:.2em;color:var(--apricot-ink);text-transform:uppercase}
+.reason-chip{display:inline-block;background:#F0EBDD;color:#6B5F49;padding:4px 9px;margin:4px 4px 0 0;border-radius:6px;font-size:11px}
+
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0}
+.choice{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:18px 20px;text-align:left;color:var(--ink);font:15px var(--sans);position:relative;transition:.22s}
+.choice:hover{border-color:#B9B29C;transform:translateY(-1px)}
+.choice.selected{border-color:var(--green);background:#F0F4EC;box-shadow:0 0 0 3px rgba(20,61,54,.06)}
+.choice::first-letter{font-family:var(--num);color:var(--green);font-weight:600}
+.choice:disabled{cursor:default;opacity:1}
+.choice.choice-correct{background:#EDF5EC;border-color:#7CA98D;color:var(--green)}
+.choice.choice-wrong{background:#FBF0E8;border-color:#C99B72;color:#7C4A25}
+.choice.choice-dim{opacity:.5}
+.choice-status{display:inline-block;margin-left:10px;font-size:11px;font-weight:600}
+
+.feedback{font-size:13.5px;color:var(--muted);border-left:3px solid var(--sage);padding:4px 0 4px 14px;margin:14px 2px}
+.answer-review{margin-top:16px;padding:18px 20px;border:1px solid var(--line);border-left:3px solid var(--apricot);border-radius:12px;background:#FCF9F0}
+.answer-review[hidden]{display:none}
+.answer-review h4{margin:0 0 8px;font:600 13px var(--serif);color:var(--ink)}
+.answer-review p{margin:0;font-size:13px;line-height:1.8}
+.answer-meta{margin-top:8px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.review-actions span{font-size:11.5px;color:var(--muted);margin-right:4px}
+.review-btn{border:1px solid #C9C2B0;border-radius:8px;background:transparent;color:var(--ink);padding:8px 12px;font-size:12px;transition:.2s}
+.review-btn:hover,.review-btn.selected{border-color:var(--green);background:#EAF1E7;color:var(--green)}
+
+.answer-row{display:flex;align-items:center;justify-content:flex-start;gap:12px;flex-wrap:wrap}
+.answer-row #timer{margin-right:auto;font:13px var(--num);color:var(--muted);font-variant-numeric:tabular-nums}
+.answer-row #viewTrends[hidden]{display:none}
+
+.pause-overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:rgba(20,35,30,.28);backdrop-filter:blur(3px)}
+.pause-overlay[hidden]{display:none}
+.pause-panel{width:min(420px,92vw);padding:28px;background:var(--paper-2);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 70px rgba(20,35,30,.18);text-align:center}
+.pause-panel h3{font-size:20px;margin:10px 0 6px}
+.pause-panel p{font-size:13px;margin:0 0 18px}
+.pause-panel .btn{min-height:44px}
+body.pause-locked{overflow:hidden}
+
+.timer-hint{display:block;margin-top:6px;color:var(--muted);font-size:12px}
+.timer-hint.over{color:var(--apricot-ink)}
+.focus-note{margin:8px 0 0;font-size:12px;color:var(--muted)}
+
+.state-hero{text-align:center;display:grid;place-items:center;min-height:290px;margin-top:22px;border:1px dashed #C9C2B0;border-radius:16px;background:linear-gradient(135deg,#FDFBF5,#F1EDE1)}
+.state-hero h3{font-size:23px;margin:10px 0 6px}
+.state-hero p{max-width:40ch;margin:0 auto}
+.state-pill{display:inline-block;font-size:11px;letter-spacing:.22em;color:var(--apricot-ink);text-transform:uppercase}
+.testing-view.hidden,.submitted-view{display:none}
+.submitted-view.open{display:block;padding:42px 0;text-align:center}
+
+.why-details{margin-top:14px}
+.why-details summary{font-weight:600;color:var(--ink);font-size:13px}
+.why-details details{font-size:12.5px;color:var(--muted);line-height:1.9;margin-top:6px}
+.why-breakdown{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:12px;line-height:2}
+.mastery-meter{height:4px;margin-top:10px;background:#EAE4D3;border-radius:4px;overflow:hidden}
+.mastery-meter i{display:block;height:100%;width:0;background:var(--green)}
+.wrong-review{margin-top:8px;padding:8px 12px;border:1px solid #C9C2B0;border-radius:8px;background:transparent;color:var(--ink);font-size:12px}
+
+/* 陪练呼吸卡片 */
+.coach-card{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-top:18px;padding:20px 22px;background:linear-gradient(180deg,#F3F7F1,#FBF9F1);border:1px solid var(--sage);border-left:3px solid var(--focus);border-radius:16px;color:var(--ink);animation:coachEnter .32s ease-out both}
+.coach-card[hidden]{display:none}
+.coach-message{min-width:0;flex:1 1 300px}
+.coach-message strong{font:600 14px var(--serif)}
+.coach-message p{margin:6px 0 0;font-size:13px;line-height:1.8;color:var(--muted)}
+.coach-countdown{display:block;margin-top:8px;color:var(--green);font:13px var(--num);font-variant-numeric:tabular-nums}
+.coach-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.coach-actions .btn{padding:9px 14px;font-size:12.5px;border-radius:10px}
+.coach-close{width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:20px;line-height:1}
+.coach-close:hover{background:rgba(20,61,54,.07)}
+.coach-toggle{display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:12.5px}
+.coach-toggle input{width:16px;height:16px;accent-color:var(--green)}
+.coach-game{margin-top:12px}
+.coach-game[hidden]{display:none}
+.game-hud{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.game-lives{color:#B65C4A;letter-spacing:1px}
+.game-score{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.game-track{position:relative;width:min(420px,100%);height:150px;margin-top:8px;border:1px solid #CFE0D3;border-radius:12px;background:#EEF4EC;overflow:hidden}
+.game-track canvas{display:block;width:100%;height:100%;margin:0;touch-action:none;cursor:pointer}
+.game-hint{margin:5px 0 0;font-size:10.5px;color:var(--muted)}
+.auto-status{display:flex;gap:12px;margin-top:24px;font-size:12px;color:var(--muted);align-items:center;flex-wrap:wrap}
+.coach-state{display:inline-block;font-size:11.5px;letter-spacing:.06em;color:var(--green)}
+
+.bottom{margin-top:28px}
+.bottom h2{font-size:15px;margin:0 0 6px}
+.review-history{margin-top:8px}
+.review-history details{padding:12px 0;border-bottom:1px solid var(--line)}
+.review-history summary{display:flex;justify-content:space-between;gap:14px;align-items:center;cursor:pointer;font-size:13px}
+.review-history p{font-size:12.5px;margin:8px 0;color:var(--muted)}
+.event{display:flex;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid var(--line);font-size:12.5px;flex-wrap:wrap}
+
+/* ---------- 趋势页 ---------- */
+.trends-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}
+.trends-head p{font-size:12.5px;margin-top:6px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend .l-focus::before{content:'';width:16px;height:3px;border-radius:2px;background:var(--focus)}
+.legend .l-fatigue::before{content:'';width:16px;height:3px;border-radius:2px;background:var(--fatigue)}
+.legend .l-accuracy::before{content:'';width:16px;height:3px;border-radius:2px;background:var(--accuracy)}
+.chart-wrap{position:relative;margin-top:22px;height:230px}
+.chart-wrap canvas{display:block;width:100%;height:230px;margin:0;touch-action:pan-y;cursor:crosshair}
+.chart-tooltip{position:absolute;z-index:3;display:none;min-width:180px;padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:var(--paper-2);box-shadow:0 6px 20px rgba(30,46,42,.10);color:var(--ink);font-size:11.5px;line-height:1.7;pointer-events:none}
+.chart-controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.chart-controls button{padding:8px 12px;border:1px solid #C9C2B0;border-radius:9px;background:transparent;color:var(--ink);font-size:12px}
+.chart-controls button[aria-pressed=true]{background:#EAF1E7;border-color:var(--focus);color:var(--green)}
+.chart-table{width:100%;margin-top:14px;border-collapse:collapse;font-size:12px}
+.chart-table th,.chart-table td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.chart-table th{color:var(--muted);font-weight:600}
+.chart-legend-note{color:var(--muted);font-size:11px;margin-top:8px}
+.chart-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px}
+.chart-foot .chart-legend-note{margin:0}
+.chart-foot #returnReal{padding:7px 11px;font-size:12px}
+.empty[hidden]{display:none}
+.model-check{font-size:11px;color:var(--muted);margin-top:10px}
+.demo-badge{display:inline-block;padding:2px 7px;border-radius:6px;background:#F0E4CE;color:#835D22;font-size:10px;font-weight:600}
+.notice{background:#F1F5EE;border-radius:12px;padding:18px 20px;line-height:1.8;margin-top:20px}
+.notice b{font-family:var(--serif);font-size:15px;color:var(--ink)}
+.notice div{font-size:13px;color:var(--muted);margin-top:4px}
+.empty{font-size:13px;color:var(--muted)}
+details{font-size:12.5px;color:var(--muted);line-height:1.9;margin-top:20px}
+summary{cursor:pointer;color:var(--ink);font-weight:600}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.recommendation-settings{margin-top:20px;border-top:1px solid var(--line);padding-top:6px}
+.weight-priority{margin:8px 0 0;font-size:11.5px;color:var(--muted)}
+.weight-explanation{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;line-height:1.9;color:var(--muted)}
+.weight-explanation p{margin:2px 0}
+.weight-explanation b{color:var(--ink)}
+.weight-sum{margin-top:8px!important}
+.weights{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:12px}
+.weights label{display:grid;gap:7px;color:var(--muted)}
+.weights input{width:100%;accent-color:var(--green)}
+.spline-method-note{display:block;margin:10px 0 0;color:#8A9690;font-size:11px;line-height:1.6}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--ink);color:#FBF8F0;padding:13px 22px;border-radius:12px;display:none;z-index:30;font-size:13px}
+.toast-visible{display:block!important;max-width:calc(100vw - 32px);text-align:center}
+
+.foot{font-size:11px;color:var(--muted);margin-top:40px;text-align:center;letter-spacing:.02em}
+.auth-area{display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:18px;border-top:1px solid var(--line)}
+.auth-btn{width:100%;justify-content:center}
+.auth-hint{font-size:10.5px;color:var(--muted);text-align:center}
+.auth-backdrop{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;background:rgba(20,35,30,.32);backdrop-filter:blur(3px)}
+.auth-backdrop[hidden]{display:none}
+.auth-panel{position:relative;width:min(360px,92vw);padding:30px 28px;background:var(--paper-2);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 70px rgba(20,35,30,.2)}
+.auth-panel h3{font-size:20px;margin:0 0 4px}
+.auth-sub{font-size:12px;color:var(--muted);margin:0 0 14px}
+.auth-panel label{display:grid;gap:6px;font-size:12px;color:var(--muted);margin-top:12px}
+.auth-panel input{width:100%;padding:11px 12px;border:1px solid #C9C2B0;border-radius:10px;background:var(--paper);color:var(--ink);font:14px var(--sans)}
+.auth-panel input:focus-visible{outline:2px solid var(--apricot);outline-offset:1px}
+.auth-err{min-height:16px;margin-top:10px;font-size:11.5px;color:#B65C4A}
+.auth-actions{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.auth-actions .btn{width:100%;min-height:44px}
+.auth-panel .coach-close{position:absolute;top:14px;right:14px}
+
+/* 答题优先：练习页进入答题态时压缩页头，题目尽量首屏可见 */
+body.practice-testing #practiceView .module-head{display:none}
+body.practice-testing #practiceView #practice > p:not(.focus-note){display:none}
+body.practice-testing #practiceView .auto-status{display:none}
+body.practice-testing #practiceView .records-entry{display:none}
+body.practice-testing #practiceView .practice-signal{padding:8px 14px;margin-bottom:10px}
+body.practice-testing #practiceView .why-details{margin-top:6px}
+body.practice-testing #practiceView .paper{margin-top:12px}
+#testingView{scroll-margin-top:12px}
+@media(min-width:651px){
+  body.practice-testing #practiceView{padding-top:16px}
+  body.practice-testing #practiceView .card#practice{padding:20px 24px}
+}
+
+/* 答题流转：自动切题 / 庆祝 / 强制休息 */
+.paper{overflow:hidden}
+.testing-view{position:relative}
+.auto-next-bar{position:absolute;left:0;top:0;height:3px;width:0;background:var(--focus);border-radius:0 2px 2px 0;pointer-events:none;z-index:2}
+.question-wipe{position:absolute;inset:0;z-index:6;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(55,134,108,.07),transparent);transform:translateX(-130%);opacity:0}
+.question-wipe.run{animation:qWipe .22s ease-out}
+@keyframes qWipe{0%{transform:translateX(-130%);opacity:0}35%{opacity:1}100%{transform:translateX(130%);opacity:0}}
+.testing-view.q-leaving{animation:qLeave .22s ease-out both}
+.testing-view.q-entering{animation:qEnter .3s ease-out both}
+@keyframes qLeave{to{opacity:0;transform:translateY(-10px) scale(.985);filter:blur(2px)}}
+@keyframes qEnter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.wrong-hint{margin:10px 2px 0;font-size:12px;color:var(--apricot-ink)}
+.wrong-hint[hidden]{display:none}
+body.modal-locked{overflow:hidden}
+.streak-celebration{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:20px;background:rgba(20,35,30,.32);backdrop-filter:blur(3px)}
+.streak-celebration[hidden]{display:none}
+.celebration-panel{position:relative;width:min(360px,92vw);padding:30px 26px;background:var(--paper-2);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 70px rgba(20,35,30,.2);text-align:center}
+.celebration-panel h3{font-size:21px;margin:0 0 4px}
+.celebration-panel p{font-size:13px;color:var(--muted);margin:0 0 6px}
+.celebration-stats{font-size:12px;color:var(--muted);margin-bottom:16px}
+.celebration-panel .btn{width:100%;min-height:44px}
+.celebration-sound{margin-top:10px;border:0;background:none;padding:6px 8px;color:var(--muted);font-size:11px;cursor:pointer}
+.forced-rest{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:20px;background:rgba(20,35,30,.38);backdrop-filter:blur(4px)}
+.forced-rest[hidden]{display:none}
+.forced-rest-panel{width:min(360px,92vw);padding:30px 26px;background:var(--paper-2);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 70px rgba(20,35,30,.22);text-align:center}
+.forced-rest-panel h3{font-size:20px;margin:0 0 6px}
+.forced-rest-panel p{font-size:13px;color:var(--muted);margin:0 0 16px}
+.forced-rest-count{font-family:var(--num);font-size:48px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.forced-rest-bar{height:5px;margin-top:16px;background:#EAE4D3;border-radius:999px;overflow:hidden}
+.forced-rest-bar i{display:block;height:100%;width:0;background:var(--focus);border-radius:999px;transition:width 1s linear}
+/* 练习开始/结束动画 */
+.start-overlay,.end-overlay{position:fixed;inset:0;z-index:85;display:grid;place-items:center;padding:20px;transition:opacity .35s ease}
+.start-overlay{background:rgba(247,243,234,.94);backdrop-filter:blur(3px)}
+.end-overlay{background:rgba(20,35,30,.9);backdrop-filter:blur(5px)}
+.start-overlay.fading,.end-overlay.fading{opacity:0;pointer-events:none}
+.start-panel{text-align:center}
+.start-ring{width:88px;height:88px;margin:0 auto 20px;border-radius:50%;border:2px solid var(--sage);border-top-color:var(--focus);animation:startSpin .9s linear infinite}
+.start-count{font-family:var(--num);font-size:60px;line-height:1;color:var(--green);font-variant-numeric:tabular-nums}
+.start-count.pop{animation:countPop .4s ease}
+.start-sub{font-size:12px;color:var(--muted);margin-top:12px;letter-spacing:.24em}
+.end-panel{text-align:center;color:#FBF8F0}
+.end-title{font-family:var(--serif);font-size:19px;margin:0 0 10px;color:#FBF8F0;font-weight:600}
+.end-gauge-wrap{position:relative;width:216px;height:216px;margin:0 auto}
+.end-gauge-wrap svg{width:100%;height:100%}
+.end-track{fill:none;stroke:rgba(255,255,255,.13);stroke-width:6}
+.end-arc{fill:none;stroke:#8AD6B6;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.22,.61,.36,1)}
+.end-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.end-acc{font-family:var(--num);font-size:42px;line-height:1;color:#FBF8F0;font-variant-numeric:tabular-nums}
+.end-acc-sub{font-size:11px;color:#B8C4BD;letter-spacing:.14em}
+.end-grade{font-family:var(--serif);font-size:80px;font-weight:700;line-height:1;margin:2px 0 4px;animation:gradePop .7s cubic-bezier(.18,1.4,.35,1) both}
+@keyframes gradePop{0%{transform:scale(.2) rotate(-14deg);opacity:0}55%{transform:scale(1.25) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+.end-stats{margin-top:18px;font-size:13px;color:#D6DED9;display:flex;gap:20px;justify-content:center;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.end-stats b{color:#8AD6B6;font-family:var(--num);font-weight:600}
+@keyframes startSpin{to{transform:rotate(360deg)}}
+@keyframes countPop{0%{transform:scale(1.5);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* 排行榜 */
+.my-rank{margin:14px 0 6px;font-size:13px;color:var(--green);font-weight:600}
+.leaderboard{list-style:none;margin:0;padding:0}
+.leaderboard li{display:flex;align-items:center;gap:12px;padding:12px 10px;border-bottom:1px solid var(--line);font-size:13.5px}
+.leaderboard .lb-rank{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--num);font-weight:700;font-size:13px;background:#F1F0E7;color:var(--muted);flex:none}
+.leaderboard li:nth-child(1) .lb-rank{background:#E8C98A;color:#6b4a1d}
+.leaderboard li:nth-child(2) .lb-rank{background:#D8DDE2;color:#4a5560}
+.leaderboard li:nth-child(3) .lb-rank{background:#E4C8B4;color:#7a4a28}
+.leaderboard .lb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--ink)}
+.leaderboard .lb-val{font-family:var(--num);font-variant-numeric:tabular-nums;color:var(--green);font-weight:700}
+.leaderboard .lb-me{background:#F3F0E4;border-radius:10px}
+.leaderboard-note{margin-top:14px;font-size:11px;color:var(--muted)}
+/* 逻辑链 */
+.logic-graph{position:relative;width:100%;height:min(72vh,640px);overflow:hidden;margin-top:8px;border:1px solid var(--line);border-radius:12px;background:#FBF9F1;cursor:grab;touch-action:none}
+.logic-graph,.logic-graph *{user-select:none;-webkit-user-select:none;-moz-user-select:none}
+.logic-graph:active{cursor:grabbing}
+.logic-graph svg{display:block;transform-origin:0 0;will-change:transform}
+.logic-summary{margin-top:16px;font-size:13px;line-height:1.9;color:var(--muted)}
+.logic-summary ul{margin:8px 0 0;padding-left:20px}
+.logic-summary li{margin:4px 0}
+.logic-summary b{color:var(--ink)}
+.logic-ok{color:var(--green)}
+.logic-warn{color:var(--apricot-ink)}
+.logic-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.logic-legend span{display:inline-flex;align-items:center;gap:6px}
+.logic-legend i{width:11px;height:11px;border-radius:3px;display:inline-block;flex:none}
+
+/* 再点同项提交 */
+[hidden]{display:none!important}
+.page-view{transition:opacity .18s ease}
+.page-view.fading{opacity:0;pointer-events:none}
+.page-view.page-in{animation:pageIn .28s ease}
+@keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.choice{touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.choice.is-armed{border-color:var(--green);box-shadow:0 0 0 3px rgba(23,133,104,.14)}
+.choice.tap-pulse{animation:choiceTap .32s ease}
+@keyframes choiceTap{0%{transform:scale(1)}35%{transform:scale(.985)}100%{transform:scale(1)}}
+.tap-hint{margin:6px 2px 0;font-size:12px;color:var(--green)}
+.tap-hint[hidden]{display:none}
+
+/* ---------- 动画 ---------- */
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+@keyframes flow{0%,100%{transform:translateX(0)}50%{transform:translateX(14px)}}
+@keyframes scanSweep{0%{transform:translateX(0);opacity:0}18%,75%{opacity:1}100%{transform:translateX(460%);opacity:0}}
+@keyframes signalPulse{0%,100%{box-shadow:none}40%,60%{box-shadow:0 0 0 4px rgba(55,134,108,.08),0 0 22px rgba(55,134,108,.12)}}
+@keyframes analysisText{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes coachEnter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---------- 响应式 ---------- */
+@media(max-width:1180px){
+  .hero{grid-template-columns:1fr;gap:34px}
+  .rhythm-metrics{gap:16px}
+}
+@media(max-width:980px){:root{--sidebar-w:224px}aside{padding:32px 22px}.brand{font-size:24px}nav{margin-top:36px}}
+@media(max-width:820px){
+  .rhythm-metrics{margin-top:12px;padding-top:12px}
+  .module-launchers{grid-template-columns:1fr}
+}
+@media(max-width:650px){
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  aside{position:fixed;inset:0 0 auto;width:100%;height:56px;padding:0 16px;z-index:12;border-right:0;border-bottom:1px solid var(--line);background:var(--paper);display:flex;align-items:center}
+  .brand{font-size:18px}
+  .tag,.side-note{display:none}
+  nav{position:fixed;inset:auto 0 0;z-index:15;height:calc(60px + env(safe-area-inset-bottom));padding:4px 8px calc(4px + env(safe-area-inset-bottom));margin:0;display:grid;grid-template-columns:repeat(6,1fr);background:rgba(253,251,245,.96);border-top:1px solid var(--line);backdrop-filter:blur(6px)}
+  nav::before{display:none}
+  nav button{flex-direction:column;justify-content:center;gap:4px;min-height:48px;padding:5px 3px;text-align:center;font-size:11px}
+  nav button .dot{width:8px;height:8px}
+  nav button small{display:none}
+  main{margin-left:0}
+  .page-view{padding:64px 18px 20px}
+  h1{font-size:34px}
+  .hero-actions{width:100%}
+  .effort-card{width:100%}
+
+  .round-progress{max-width:100%}
+  .rhythm-panel{padding:22px 20px}
+  .pie-layout{gap:24px;flex-direction:column;align-items:stretch}
+  .pie-wrap{width:150px;height:150px}
+  .acc-callout{top:-8px;right:-14px}
+  .acc-callout .acc-big{font-size:22px}
+  .pie-side{min-width:0}
+  .rhythm-metrics{margin-top:12px;padding-top:12px}
+  .metric-empty{padding:14px}
+  .rhythm-band{padding:18px}
+  .band-copy{flex-direction:column;align-items:flex-start;gap:8px}
+  .band-copy span{max-width:none}
+  .module-launchers{grid-template-columns:1fr}
+  .choices{grid-template-columns:1fr}
+  .choice{min-height:48px}
+  .answer-row .btn{padding:12px 14px}
+  .chart-wrap,.chart-wrap canvas{height:200px}
+  .weights{grid-template-columns:1fr}
+  .coach-card{align-items:flex-start;flex-direction:column}
+  .game-track{height:130px}
+  .record-tab{padding:10px 10px;font-size:12.5px}
+  .module-head{align-items:flex-start}
+  .auth-area{margin-left:auto;margin-top:0;border-top:0;padding-top:0}
+  .nav-pill{display:none}
+  aside::before{display:none}
+  .auth-hint{display:none}
+  .auth-btn{width:auto;padding:8px 12px;font-size:12px}
+  #testingView{scroll-margin-top:64px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .rhythm-ring .ring,.band-wave path{animation:none!important}
+  .practice-signal.scanning,.metric.scanning,.analysis-status.active,.coach-card{animation:none!important}
+  .practice-signal.scanning::after,.metric.scanning::after{display:none}
+  .nav-pill,.module-link::before,aside::before,.btn::after{transition:none!important}
+  .module-link{transform:none!important}
+}
+</style></head><body>
+<aside>
+  <div class="brand"><b>◈</b> 学有度</div>
+  <div class="tag">LEARN AT YOUR PACE</div>
+  <nav>
+    <span class="nav-pill" aria-hidden="true"></span>
+    <button class="active"><span class="dot"></span><span>学习仪表盘<small>Overview</small></span></button>
+    <button><span class="dot"></span><span>练习与反馈<small>初中数学</small></span></button>
+    <button><span class="dot"></span><span>学习趋势<small>Trends</small></span></button>
+    <button><span class="dot"></span><span>记录与错题<small>Records</small></span></button>
+    <button><span class="dot"></span><span>排行榜<small>Ranking</small></span></button>
+    <button><span class="dot"></span><span>逻辑链<small>Logic</small></span></button>
+  </nav>
+  <div class="side-note">每一种学习节奏<br>都值得被理解。<hr>HACKATHON PROTOTYPE · 01</div>
+</aside>
+
+<main>
+  <section class="page-view" id="dashboardView">
+    <div class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">YOUR LEARNING COMPANION</div>
+        <div class="subject-tag"><span class="subject-name">初中数学 · JUNIOR HIGH MATH</span><span class="subject-sub">方程 · 函数 · 几何</span></div>
+        <h1>找到你的<em>学习节奏</em></h1>
+        <p class="lead">从一次小练习开始，让反馈帮你走得更轻松。</p>
+        <div class="hero-actions">
+          <button class="btn" id="dashboardStart" type="button">开始 3 分钟练习 →</button>
+          <div class="effort-wrap">
+            <button class="effort-trigger" id="goalTrigger" type="button" aria-expanded="false">本轮目标 <b id="goalTriggerValue">Medium · 5 Qs · Lv 2</b> <span class="effort-chev">▾</span></button>
+            <div class="effort-card" id="goalCard" hidden>
+              <div class="effort-head">
+                <span class="effort-level" id="goalLevelName">Medium</span>
+                <span class="effort-value" id="goalValue">5 Qs · Lv 2</span>
+              </div>
+              <div class="level-slider" id="levelSlider" role="slider" tabindex="0" aria-label="题量与难度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1">
+                <div class="level-rail"><div class="level-fill" id="levelFill"></div></div>
+                <div class="level-ticks" id="levelTicks"></div>
+                <div class="level-thumb" id="levelThumb"></div>
+              </div>
+              <div class="effort-foot">
+                <div class="effort-select-wrap">
+                  <button class="effort-select" id="goalSelect" type="button" aria-haspopup="listbox" aria-expanded="false">Select effort <span class="effort-chev">▾</span></button>
+                  <ul class="effort-menu" id="goalMenu" hidden></ul>
+                </div>
+              </div>
+              <div class="goal-hint" id="goalHint" hidden>You'll get the full question bank</div>
+            </div>
+          </div>
+        </div>
+        <div class="round-progress"><span id="goalLabel">本轮进度 0/5</span><progress id="goalProgress" max="5" value="0"></progress></div>
+      </div>
+      <div class="rhythm-panel">
+        <div class="rhythm-head">
+          <span class="panel-title">今日节律</span>
+          <span class="pill" id="mode">● 真实练习模式</span>
+        </div>
+        <div class="rhythm-metrics" id="rhythmRing" role="img" aria-label="今日节律：待开始">
+          <div class="pie-layout">
+            <div class="pie-wrap">
+              <svg class="rhythm-pie" viewBox="0 0 240 240" aria-hidden="true">
+                <circle class="acc-ring-track" cx="120" cy="120" r="90" pathLength="100"/>
+                <circle class="acc-ring-arc" cx="120" cy="120" r="90" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 120 120)"/>
+                <circle class="pie-bg" cx="120" cy="120" r="76"/>
+                <path class="pie-focus" d=""/>
+                <path class="pie-fatigue" d=""/>
+              </svg>
+              <div class="acc-callout"><span class="acc-label">本轮正确率</span><span class="acc-big" id="accuracy">—</span></div>
+            </div>
+            <div class="pie-side">
+              <div class="pie-legend">
+                <span class="metric metric-focus lg" data-metric="focus" tabindex="0" role="button" aria-label="查看专注占比详情"><i class="dot dot-focus"></i>专注 <b id="focusShare">—</b></span>
+                <span class="metric metric-fatigue lg" data-metric="fatigue" tabindex="0" role="button" aria-label="查看疲劳占比详情"><i class="dot dot-fatigue"></i>疲劳 <b id="fatigueShare">—</b></span>
+                <span class="metric metric-accuracy lg" data-metric="accuracy" tabindex="0" role="button" aria-label="查看正确率详情"><i class="dot dot-accuracy"></i>正确率 <b id="accuracyShare">—</b></span>
+              </div>
+              <p class="pie-note" id="rhythmState">完成更多题目后，这里会呈现你的节律变化。</p>
+              <span class="pie-sum">专注 + 疲劳占比合计 100%</span>
+            </div>
+          </div>
+          <span id="focus" hidden></span><span id="fatigue" hidden></span>
+          <i id="focusBar" hidden></i><i id="fatigueBar" hidden></i><i id="accuracyBar" hidden></i>
+          <div class="metric-empty" id="metricEmpty">
+            <svg viewBox="0 0 220 40" preserveAspectRatio="none" aria-hidden="true"><path fill="none" stroke="#B9C6B6" stroke-width="1.4" stroke-linecap="round" d="M0 20 C 18 8 37 8 55 20 C 73 32 92 32 110 20 C 128 8 147 8 165 20 C 183 32 202 32 220 20"/></svg>
+            <span>完成第一题后，这里会出现你的节奏</span>
+          </div>
+        </div>
+        <p class="rhythm-tip" id="rhythmTip" aria-live="polite">完成第一题后，这里会显示专注与疲劳的对抗关系；悬停或点击指标查看解释。</p>
+        <div class="rhythm-foot">
+          <p class="stats" id="stats">已完成 0 题 · 累计修改 0 次</p>
+          <button class="rhythm-link" type="button" data-page="trendsView">查看完整趋势 →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rhythm-band">
+      <svg class="band-wave" viewBox="0 0 1200 140" preserveAspectRatio="none" aria-hidden="true">
+        <path class="bw-3" d="M0 30 C 25 18 75 18 100 30 C 125 42 175 42 200 30 C 225 18 275 18 300 30 C 325 42 375 42 400 30 C 425 18 475 18 500 30 C 525 42 575 42 600 30 C 625 18 675 18 700 30 C 725 42 775 42 800 30 C 825 18 875 18 900 30 C 925 42 975 42 1000 30 C 1025 18 1075 18 1100 30 C 1125 42 1175 42 1200 30"/>
+        <path class="bw-2" d="M0 96 C 25 111 75 111 100 96 C 125 81 175 81 200 96 C 225 111 275 111 300 96 C 325 81 375 81 400 96 C 425 111 475 111 500 96 C 525 81 575 81 600 96 C 625 111 675 111 700 96 C 725 81 775 81 800 96 C 825 111 875 111 900 96 C 925 81 975 81 1000 96 C 1025 111 1075 111 1100 96 C 1125 81 1175 81 1200 96"/>
+        <path class="bw-1" d="M0 60 C 25 32 75 32 100 60 C 125 88 175 88 200 60 C 225 32 275 32 300 60 C 325 88 375 88 400 60 C 425 32 475 32 500 60 C 525 88 575 88 600 60 C 625 32 675 32 700 60 C 725 88 775 88 800 60 C 825 32 875 32 900 60 C 925 88 975 88 1000 60 C 1025 32 1075 32 1100 60 C 1125 88 1175 88 1200 60"/>
+      </svg>
+      <div class="band-copy">
+        <strong>今天适合先做 5 分钟基础题</strong>
+        <span>节奏平稳时，从简单的开始更容易进入状态。</span>
+      </div>
+    </div>
+
+    <div class="module-launchers">
+      <button class="module-link" data-page="recordsView">
+        <span class="module-icon">▤</span>
+        <span><strong>查看记录与错题</strong><small>回看每次作答，挑一道错题重练</small></span>
+        <span class="arr">→</span>
+      </button>
+      <button class="module-link" data-page="trendsView">
+        <span class="module-icon">↗</span>
+        <span><strong>查看学习趋势</strong><small>分析专注、疲劳与正确率变化</small></span>
+        <span class="arr">→</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="page-view" id="trendsView" hidden>
+    <div class="module-head">
+      <div>
+        <div class="eyebrow">LEARNING TRENDS</div>
+        <h1>学习趋势</h1>
+        <p>查看每次作答后记录的状态变化。</p>
+      </div>
+      <button class="btn secondary" data-page="dashboardView">← 返回总览</button>
+    </div>
+    <section class="card">
+      <div class="trends-head">
+        <div>
+          <h2 style="margin:0">学习状态与自适应趋势</h2>
+          <p>每次提交后更新 · 分数范围 0–100 · 越靠上越专注，疲劳越低越轻松</p>
+        </div>
+        <div class="legend">
+          <span class="l-focus">专注（线）</span>
+          <span class="l-fatigue">疲劳（线）</span>
+          <span class="l-accuracy">正确率（点）</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart" role="img" aria-label="学习状态趋势图。展示专注、疲劳和正确率估算变化。"></canvas>
+        <div class="chart-tooltip" id="chartTooltip" role="status"></div>
+      </div>
+      <div class="chart-controls">
+        <button id="showRecent" type="button" aria-pressed="true">最近 15 题</button>
+        <button id="showAll" type="button" aria-pressed="false">全部</button>
+        <button id="toggleChartTable" type="button" aria-expanded="false">查看数据表</button>
+        <button id="toggleDotMode" type="button" aria-pressed="false">隐藏点</button>
+      </div>
+      <div id="chartTableWrap" hidden>
+        <table class="chart-table"><thead><tr><th>序号</th><th>专注</th><th>疲劳</th><th>正确率</th></tr></thead><tbody id="chartTable"></tbody></table>
+      </div>
+      <div class="chart-foot">
+        <div class="chart-legend-note">趋势仅作参考 · <span class="demo-badge" id="demoBadge" hidden>演示</span></div>
+        <button class="btn secondary" id="returnReal" type="button" hidden>回到真实练习</button>
+      </div>
+      <div class="empty" id="chartHint">完成第一道题，开始记录你的学习节奏</div>
+      <div class="notice"><b id="adviceTitle">准备好，就开始吧</b><div id="advice">这里将解释变化的依据，并给出可自主选择的学习建议。</div></div>
+      <p class="model-check" id="modelCheck"></p>
+      <details class="recommendation-settings" id="recommendationSettings">
+        <summary>推荐偏好</summary>
+        <div class="weight-priority" id="weightPriority">调整权重，改变下一题的推荐倾向。</div>
+        <div class="weights">
+          <label>知识补弱 <span id="wmv">45%</span><input id="wm" type="range" min="0" max="100" value="45"></label>
+          <label>心流匹配 <span id="wfv">30%</span><input id="wf" type="range" min="0" max="100" value="30"></label>
+          <label>复习抗遗忘 <span id="wrv">25%</span><input id="wr" type="range" min="0" max="100" value="25"></label>
+        </div>
+        <button class="btn secondary" id="resetWeights" type="button">恢复默认 45/30/25</button>
+        <div class="weight-explanation">
+          <p><b>知识补弱</b>：哪里不会补哪里——这个知识点错得越多越优先推，难度选你够得着的。</p>
+          <p><b>心流匹配</b>：难易跟着状态走——受挫推简单题，无聊推挑战题，平稳推匹配题。</p>
+          <p><b>复习抗遗忘</b>：快忘了的先复习——越久没练越优先，记得牢的忘得慢。</p>
+          <p class="weight-sum">三个权重恒为 100%。每道题按三者加权打分，再扣掉「刚做过不重复」和「前置没学会往后排」，分最高的就是下一题。</p>
+        </div>
+      </details>
+      <details>
+        <summary>这些分数是怎么计算的？</summary>
+        所有分数均为演示性启发规则，不代表真实心理状态。以最近 5 次作答的平均用时为个人基线：专注原始分 = 90 − 超过 1 倍基线的用时比例 × 25 − 修改次数 × 8（最多扣 24）− 切出页面次数 × 8（最多扣 24）。疲劳原始分 = 10 + 超基线比例 × 30 + 连续错误数 × 12（最多计 3 次）+ 本轮分钟数 × 0.5（最多计 20 分钟）。两者限制在 0–100，随后使用 0.65 × 上次分数 + 0.35 × 本次原始分平滑。模拟模式按指定用时生成数据，与真实练习分开重置。记录仅保存在本机浏览器。趋势图的自适应平滑参考局部惩罚样条：局部波动越明显，平滑惩罚越弱；平稳区域惩罚越强，并使用 GCV 选择平滑强度。平滑曲线仅用于展示，不参与疲劳分数和提示触发。
+      </details>
+      <div class="controls">
+        <button class="btn secondary" id="simulate">▶ 演示一轮（清空当前记录）</button>
+        <button class="btn secondary" id="reset">重新开始真实练习（清空记录）</button>
+        <button class="btn secondary" id="export">导出 CSV</button>
+        <button class="btn secondary" id="exportJson" type="button">导出 JSON</button>
+      </div>
+    </section>
+  </section>
+
+  <section class="page-view" id="practiceView" hidden>
+    <div class="module-head">
+      <div>
+        <div class="eyebrow">PRACTICE &amp; FEEDBACK</div>
+        <h1>轻量练习</h1>
+        <p>按自己的节奏作答，系统会根据表现推荐下一题。</p>
+      </div>
+      <button class="btn secondary" data-page="dashboardView">← 返回总览</button>
+    </div>
+    <div class="practice-signal" id="practiceSignalPanel">
+      <div class="signal-top"><span>学习状态估算</span><span class="analysis-status" id="analysisStatus" aria-live="polite">正在分析您的脑力曲线...</span></div>
+      <div class="signal-values"><span>专注趋势 <b id="practiceFocus">—</b></span><span>疲劳趋势 <b id="practiceFatigue">—</b></span></div>
+    </div>
+    <section class="card" id="practice">
+      <div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:14px">
+        <h2 style="margin:0">轻量练习</h2><span class="badge" id="level" style="font-size:11.5px;letter-spacing:.08em;color:var(--apricot-ink)">基础难度</span>
+      </div>
+      <p class="focus-note" id="focusNote">已修改 0 次 · 离开 0 次 · 仅用于估算，不评价你。</p>
+      <div class="timer-hint" id="timerHint"></div>
+      <div class="why-details" id="whyDetails">
+        <details><summary>为什么推荐这道题？</summary>
+          <div id="whyContent"></div>
+          <div class="mastery-meter"><i id="masteryBar"></i></div>
+          <small id="masteryLabel" style="color:var(--muted);font-size:11px">知识点掌握度估算</small>
+          <button class="wrong-review" id="masteryHistory" type="button">查看该知识点历史</button>
+          <div class="mastery-history" id="masteryHistoryRows" hidden></div>
+        </details>
+      </div>
+      <p style="font-size:12.5px">选择答案后提交，系统将记录用时和修改次数。</p>
+      <div class="state-hero" id="idleView">
+        <div>
+          <span class="state-pill">准备开始</span>
+          <h3>准备好开始了吗？</h3>
+          <p>系统会根据你的答题节奏，动态匹配下一道题。</p>
+          <button class="btn" id="startTest">开始测试 →</button>
+        </div>
+      </div>
+      <div class="testing-view hidden" id="testingView">
+        <div class="question-wipe" id="questionWipe"></div>
+        <div class="paper">
+          <div class="auto-next-bar" id="autoNextBar"></div>
+          <span class="qnum" id="qnumber"></span>
+          <div class="notice" id="recommendReason" style="font-size:12px;padding:12px 16px;margin-top:10px">系统将根据三指标为你推荐下一题。</div>
+          <h3 id="qtext"></h3>
+          <div id="difficultyTags"></div>
+        </div>
+        <div class="choices" id="choices"></div>
+        <div class="tap-hint" id="tapHint" hidden aria-live="polite"></div>
+        <div class="pause-overlay" id="pauseOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+          <div class="pause-panel">
+            <span class="state-pill">已暂停</span>
+            <h3 id="pauseTitle">先停一下，准备好再继续</h3>
+            <p>计时已经冻结，停下的时间不会计入本题。</p>
+            <button class="btn" id="resumeTest" type="button">继续答题 →</button>
+          </div>
+        </div>
+        <div class="feedback" id="feedback" aria-live="polite" aria-atomic="true"></div>
+        <section class="answer-review" id="answerReview" hidden>
+          <h4 id="reviewHeading" tabindex="-1">解析</h4>
+          <p id="reviewExplanation"></p>
+          <div class="answer-meta" id="reviewMeta"></div>
+          <div class="review-actions">
+            <span>这次练习对你有帮助吗？</span>
+            <button class="review-btn" id="feedbackUnderstood" type="button" aria-pressed="false">这题帮我理解了</button>
+            <button class="review-btn" id="feedbackUnclear" type="button" aria-pressed="false">还是没懂</button>
+          </div>
+        </section>
+        <div class="wrong-hint" id="wrongHint" hidden>这题需要你自己决定何时继续</div>
+        <div class="row answer-row">
+          <span id="timer">用时 00:00</span>
+          <button class="btn secondary" id="pauseTest" type="button">暂停</button>
+          <button class="btn secondary" id="nextQuestion" type="button" hidden>下一题 →</button>
+          <button class="btn" id="submit" disabled hidden aria-hidden="true">提交答案 →</button>
+          <button class="btn secondary" id="viewTrends" type="button">查看趋势</button>
+        </div>
+      </div>
+      <div class="coach-card" id="coachCard" hidden aria-live="polite">
+        <div class="coach-message">
+          <strong id="coachTitle">学习节奏提示</strong>
+          <p id="coachText"></p>
+          <span class="coach-countdown" id="coachCountdown" hidden aria-live="off"></span>
+          <div class="coach-game" id="coachGame" hidden aria-live="off">
+            <div class="game-hud">
+              <span class="game-lives" id="gameLives" role="img" aria-label="剩余生命 5">♥♥♥♥♥</span>
+              <span class="game-score" id="gameScore" aria-live="off">已躲过 0 个</span>
+            </div>
+            <div class="game-track"><canvas id="restGame" tabindex="0" role="img" aria-label="休息小游戏画面：小球沿地面线跑动，点击或按空格跳跃躲避障碍" aria-describedby="gameHint"></canvas></div>
+            <p class="game-hint" id="gameHint">鼠标左键 / 触屏点击 / 空格起跳 · 5 次碰撞会结束休息，先完成一题再继续</p>
+          </div>
+        </div>
+        <div class="coach-actions">
+          <button class="btn" id="coachRest">休息一下</button>
+          <button class="btn" id="coachEasy">切换基础题</button>
+          <button class="btn secondary" id="coachLater">稍后再说</button>
+          <button class="coach-close" id="coachDismiss" aria-label="关闭提示">×</button>
+        </div>
+      </div>
+      <div class="submitted-view" id="submittedView">
+        <span class="state-pill">本轮已完成</span>
+        <h3 id="resultTitle">本题完成</h3>
+        <p id="resultText">系统已记录本次作答表现。</p>
+        <button class="btn" id="nextTest">开始下一题 →</button>
+      </div>
+      <div class="auto-status">
+        <label class="coach-toggle"><input type="checkbox" id="coachToggle"><span class="coach-state" id="coachState">自动陪练已开启</span></label>
+        <span id="coachCaption">系统会根据作答节奏主动提醒你</span>
+      </div>
+      <div class="records-entry">
+        <button class="btn secondary" data-page="recordsView" type="button">查看全部记录 →</button>
+      </div>
+    </section>
+  </section>
+
+  <section class="page-view" id="recordsView" hidden>
+    <div class="module-head">
+      <div>
+        <div class="eyebrow">RECORDS &amp; REVIEW</div>
+        <h1>记录与错题</h1>
+        <p>所有作答记录在这里；错题单独归档，方便回看和重练。</p>
+      </div>
+      <div class="module-actions">
+        <button class="btn" data-page="practiceView" type="button">去练习 →</button>
+        <button class="btn secondary" data-page="dashboardView" type="button">← 返回总览</button>
+      </div>
+    </div>
+    <section class="card">
+      <div class="record-summary">
+        <div><span>总记录</span><b id="recordTotal">0</b></div>
+        <div><span>正确率</span><b id="recordAccuracy">—</b></div>
+        <div><span>错题</span><b id="recordWrong">0</b></div>
+      </div>
+      <div class="record-tabs" role="tablist" aria-label="记录筛选">
+        <button class="record-tab" id="recordsTabAll" role="tab" aria-selected="true" aria-controls="events" data-record-filter="all">练题记录 <span id="recordsAllCount">0</span></button>
+        <button class="record-tab" id="recordsTabWrong" role="tab" aria-selected="false" aria-controls="events" data-record-filter="wrong">错题 <span id="recordsWrongCount">0</span></button>
+      </div>
+      <div class="review-history" id="events" role="tabpanel" aria-live="polite"></div>
+    </section>
+  </section>
+
+  <section class="page-view" id="leaderboardView" hidden>
+    <div class="module-head">
+      <div>
+        <div class="eyebrow">LEADERBOARD</div>
+        <h1>排行榜</h1>
+        <p>刷题攒积分、提高正确率、撑更久的休息小游戏，全站 Top 10 + 你的排名。</p>
+      </div>
+      <button class="btn secondary" data-page="dashboardView">← 返回总览</button>
+    </div>
+    <section class="card">
+      <div class="record-tabs" role="tablist" aria-label="排行榜类型">
+        <button class="record-tab" id="lbTabPoints" role="tab" aria-selected="true" data-lb-kind="points">积分榜</button>
+        <button class="record-tab" id="lbTabAccuracy" role="tab" aria-selected="false" data-lb-kind="accuracy">正确率榜</button>
+        <button class="record-tab" id="lbTabGame" role="tab" aria-selected="false" data-lb-kind="game">游戏时长榜</button>
+      </div>
+      <div class="my-rank" id="myRank">未登录 · 登录后可看自己的排名</div>
+      <ol class="leaderboard" id="leaderboardList"></ol>
+      <div class="leaderboard-note">积分规则：答对得 10×难度 分，用时越短加成越多（0~20 分）；游戏时长按休息小游戏坚持秒数累计。</div>
+    </section>
+  </section>
+
+  <section class="page-view" id="logicView" hidden>
+    <div class="module-head">
+      <div>
+        <div class="eyebrow">LOGIC CHAIN</div>
+        <h1>逻辑链</h1>
+        <p>把初中数学知识点排成一张前置依赖树，看自己的掌握度在链上哪里断了。</p>
+      </div>
+      <div class="module-actions">
+        <button class="btn secondary" id="logicResetView" type="button">复位视图</button>
+        <button class="btn secondary" data-page="dashboardView">← 返回总览</button>
+      </div>
+    </div>
+    <section class="card">
+      <div class="logic-legend">
+        <span><i style="background:#5FAF8D"></i>已掌握</span>
+        <span><i style="background:#C8A55F"></i>巩固中</span>
+        <span><i style="background:#D98F77"></i>薄弱</span>
+        <span><i style="background:#C9C2B0"></i>未接触</span>
+        <span>箭头指向 = 前置依赖（先掌握箭头起点，再做箭头终点）</span>
+      </div>
+      <div class="logic-graph" id="logicGraph" role="img" aria-label="知识点前置依赖树"></div>
+      <div class="logic-summary" id="logicSummary"></div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">拖动平移 · 滚轮缩放 · 单击选中节点 · 再点进入对应题组训练　|　掌握度为行为估算，仅用于辅助学习节奏，不构成诊断结论。</p>
+    </section>
+  </section>
+
+  <div class="foot" id="globalFoot">学习辅助原型 · 不采集摄像头或麦克风数据 · 状态为行为估算，不用于诊断或学生排名 · 无需联网 · 当前题库：初中数学 · <span id="versionTag">v14.3</span></div>
+</main>
+<div id="toast" role="status"></div>
+<div class="streak-celebration" id="streakCelebration" hidden role="dialog" aria-modal="true" aria-labelledby="celebrationTitle">
+  <div class="celebration-panel">
+    <h3 id="celebrationTitle">连续答对 5 题</h3>
+    <p>节奏很稳，保持这个状态。</p>
+    <div class="celebration-stats" id="celebrationStats"></div>
+    <button class="btn" id="celebrationContinue" type="button">继续答题 →</button>
+    <button class="celebration-sound" id="celebrationSound" type="button">提示音：开</button>
+  </div>
+</div>
+<div class="forced-rest" id="forcedRest" hidden role="dialog" aria-modal="true" aria-labelledby="forcedRestTitle">
+  <div class="forced-rest-panel">
+    <h3 id="forcedRestTitle">先休息 15 秒</h3>
+    <p>连续答错 6 题，计时已暂停，休息结束后自动继续。</p>
+    <div class="forced-rest-count" id="forcedRestCount">15</div>
+    <div class="forced-rest-bar"><i id="forcedRestBar"></i></div>
+  </div>
+</div>
+
+<div class="start-overlay" id="startOverlay" hidden role="dialog" aria-modal="true" aria-label="准备开始">
+  <div class="start-panel">
+    <div class="start-ring"></div>
+    <div class="start-count" id="startCount">3</div>
+    <p class="start-sub">准备开始</p>
+  </div>
+</div>
+<div class="end-overlay" id="endOverlay" hidden role="dialog" aria-modal="true" aria-label="本轮完成">
+  <div class="end-panel">
+    <h3 class="end-title">本轮完成</h3>
+    <div class="end-grade" id="endGrade">S</div>
+    <div class="end-gauge-wrap">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="end-track" cx="100" cy="100" r="84" pathLength="100"/>
+        <circle class="end-arc" id="endArc" cx="100" cy="100" r="84" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 100 100)"/>
+      </svg>
+      <div class="end-center"><span class="end-acc" id="endAccuracy">0%</span><span class="end-acc-sub">本轮正确率</span></div>
+    </div>
+    <div class="end-stats" id="endStats"></div>
+  </div>
+</div>
+
+<script>
+/* P0-1 数学题库结构化 Mock 数据：独立于现有 bank，后续题库接入步骤再使用。 */
+const MATH_QUESTION_BANK = [
+  {
+    "id": "junior-geometry-001",
+    "grade": "初中七年级",
+    "subject": "数学",
+    "type": "选择题",
+    "question": "三角形的两个内角分别为 50° 和 60°，第三个内角是多少？",
+    "options": ["60°", "70°", "80°", "90°"],
+    "answer": "70°",
+    "analysis": "三角形内角和为 180°，第三个内角 = 180° - 50° - 60° = 70°。",
+    "knowledge_point": "三角形内角和"
+  },
+  {
+    "id": "junior-algebra-001",
+    "grade": "初中八年级",
+    "subject": "数学",
+    "type": "填空题",
+    "question": "若 3x + 6 = 21，则 x = ____。",
+    "options": [],
+    "answer": "5",
+    "analysis": "方程两边同时减去 6 得到 3x = 15，再同时除以 3，得到 x = 5。",
+    "knowledge_point": "一元一次方程"
+  },
+  {
+    "id": "junior-probability-001",
+    "grade": "初中九年级",
+    "subject": "数学",
+    "type": "选择题",
+    "question": "袋中有 3 个红球和 2 个蓝球，随机取出 1 个球，取到红球的概率是多少？",
+    "options": ["1/5", "2/5", "3/5", "3/2"],
+    "answer": "3/5",
+    "analysis": "总球数为 5 个，红球有 3 个，因此取到红球的概率为 3/5。",
+    "knowledge_point": "概率初步"
+  },
+  {
+    "id": "senior-function-001",
+    "grade": "高中必修一",
+    "subject": "数学",
+    "type": "选择题",
+    "question": "函数 f(x)=2x+1 的零点是？",
+    "options": ["-1", "-1/2", "1/2", "2"],
+    "answer": "-1/2",
+    "analysis": "令 f(x)=0，得到 2x+1=0，因此 x=-1/2。",
+    "knowledge_point": "一次函数与零点"
+  },
+  {
+    "id": "senior-sequence-001",
+    "grade": "高中必修五",
+    "subject": "数学",
+    "type": "填空题",
+    "question": "等差数列 2，5，8，… 的第 10 项是 ____。",
+    "options": [],
+    "answer": "29",
+    "analysis": "首项 a₁=2，公差 d=3。由 a₁₀=a₁+9d=2+9×3=29。",
+    "knowledge_point": "等差数列通项公式"
+  }
+];
+</script>
+<script>const BKT_P={L0:.5,T:.15,G:.25,S:.15};
+const kpModel={};let ability=3;let targetDifficulty=2;const VERSION='14.3';
+let usedQids=new Set();
+function evaluateAnswerState(isCorrect,timeSpent,kp,difficulty){
+  kp=kp||'综合';
+  const m=kpModel[kp]||(kpModel[kp]={p:BKT_P.L0,n:0,logSum:0,logSq:0});
+  const p=m.p,G=BKT_P.G,S=BKT_P.S;
+  const pC=p*(1-S)+(1-p)*G,pW=p*S+(1-p)*(1-G);
+  const post=isCorrect?p*(1-S)/Math.max(1e-9,pC):p*S/Math.max(1e-9,pW);
+  m.p=post+(1-post)*BKT_P.T;m.n++;
+  const b=Math.max(1,Math.min(5,Number(difficulty)||3));
+  const pred=1/(1+Math.exp(-(ability-b)));
+  ability=Math.max(1,Math.min(5,ability+0.35*((isCorrect?1:0)-pred)));
+  const lt=Math.log(Math.max(.5,timeSpent));
+  m.logSum+=lt;m.logSq+=lt*lt;
+  const mean=m.logSum/m.n,varR=Math.max(.05,m.logSq/m.n-mean*mean),z=(lt-mean)/Math.sqrt(varR);
+  let state,desc;
+  if(isCorrect){state=m.p<.55&&z>.5?'猜测':'已掌握';desc=state==='猜测'?'耗时较长，可能蒙对':(m.p>=.8?'熟练作答':'已掌握，继续巩固');}
+  else{state=m.p>=.6&&z<-.5?'失误':'未掌握';desc=state==='失误'?'作答过快，可能粗心':'待巩固';}
+  return {state,desc,pLearned:Math.round(m.p*100),ability:Math.round(ability*10)/10,difficulty:b,predCorrect:Math.round(pred*100),rt:Math.round(timeSpent*10)/10};
+}
+function scoreAnswer(difficulty,seconds,correct){if(!correct)return 0;const d=Math.max(1,Math.min(5,Number(difficulty)||2));const base=10*d;const ideal=15+d*10;const bonus=Math.max(0,Math.min(20,Math.round((ideal-seconds)/3)));return base+bonus}
+const $=id=>document.getElementById(id);let records=[],current=null,selected=-1,changes=0,away=0,started=0,sessionStart=Date.now(),submitted=false,paused=false,isEasy=false,sim=false,simTimer=null,index=0,streak=0,lastPrompt='',testState='idle';const bank=[
+{id:'geo-001',kp:'三角形内角和',d:{computation_complexity:2,cognitive_load:2,trap_level:2,reading_length:22},q:'三角形两个内角分别为50°和60°，第三个角为？',a:['60°','70°','80°','90°'],k:1,e:'三角形内角和180°，所以第三个角为70°。'},
+{id:'geo-002',kp:'三角形内角和',d:{computation_complexity:1,cognitive_load:1,trap_level:1,reading_length:14},q:'三角形三个内角的和是多少？',a:['90°','180°','270°','360°'],k:1,e:'三角形内角和为180°。'},
+{id:'alg-001',kp:'一元一次方程',d:{computation_complexity:2,cognitive_load:3,trap_level:2,reading_length:15},q:'若3x+6=21，x等于多少？',a:['3','4','5','9'],k:2,e:'两边减6，再除3，得到x=5。'},
+{id:'alg-002',kp:'一元一次方程',d:{computation_complexity:1,cognitive_load:1,trap_level:1,reading_length:12},q:'若x+2=5，x等于多少？',a:['2','3','5','7'],k:1,e:'两边同时减2，得到x=3。'},
+{id:'prob-001',kp:'概率',d:{computation_complexity:3,cognitive_load:4,trap_level:3,reading_length:32},q:'袋中3个红球、2个蓝球，不放回取两次，两次都为红球的概率是？',a:['3/10','9/25','3/5','1/5'],k:0,e:'第一次3/5，第二次2/4，相乘为3/10。'},
+{id:'prob-002',kp:'概率',d:{computation_complexity:1,cognitive_load:2,trap_level:1,reading_length:22},q:'袋中3个红球、2个蓝球，随机取到红球的概率是？',a:['1/5','2/5','3/5','3/2'],k:2,e:'红球数除总球数，即3/5。'}];
+
+let viewSwitchTimer=0;function showView(id){const names=['dashboardView','practiceView','trendsView','recordsView','leaderboardView','logicView'];document.querySelectorAll('nav button').forEach((button,i)=>button.classList.toggle('active',names[i]===id));$('globalFoot').hidden=id!=='dashboardView';if(id==='trendsView')requestAnimationFrame(draw);if(id==='recordsView')window.renderRecords?.();if(id==='leaderboardView')window.loadLeaderboard?.();if(id==='logicView')requestAnimationFrame(()=>window.renderLogicTree?.());const apply=()=>{document.querySelectorAll('.page-view').forEach(view=>{if(view.id===id){view.hidden=false;view.classList.remove('fading');view.classList.add('page-in');setTimeout(()=>view.classList.remove('page-in'),300)}else{view.hidden=true;view.classList.remove('fading','page-in')}})};const current=document.querySelector('.page-view:not([hidden])');clearTimeout(viewSwitchTimer);if(current&&current.id!==id){current.classList.add('fading');viewSwitchTimer=setTimeout(apply,160)}else{apply()}if(id==='practiceView'&&testState==='testing'){requestAnimationFrame(()=>{const t=$('testingView');if(t)t.scrollIntoView({block:'start'})})}else{window.scrollTo({top:0,behavior:'smooth'})}}
+function activateState(state){testState=state;$('idleView').style.display=state==='idle'?'grid':'none';$('testingView').classList.toggle('hidden',state!=='testing');$('submittedView').classList.toggle('open',state==='submitted');document.body.classList.toggle('practice-testing',state==='testing');if(state!=='testing'){document.body.classList.remove('pause-locked');$('pauseOverlay').hidden=true}}
+function recommend(){const raw=['wm','wf','wr'].map(id=>+$(id).value);const sum=raw.reduce((a,b)=>a+b,0);const w=sum?raw.map(v=>v/sum):[.45,.30,.25];const targetNorm=(targetDifficulty-1)/4;const recent=records.slice(-3);const frustrated=streak>=2||recent.filter(r=>r.seconds>=35).length>=2;const bored=recent.length===3&&recent.every(r=>r.correct&&r.seconds<12);const flow=frustrated?'受挫':bored?'可能无聊':'平稳';let pool=bank.filter(q=>!isEasy||q.d.computation_complexity<=2);if(window.targetKp){const f=pool.filter(q=>window.isInTarget?window.isInTarget(q.kp):false);if(f.length)pool=f}return pool.map(q=>{const hist=records.filter(r=>r.kp===q.kp);const m=(hist.filter(r=>r.correct).length+2)/(hist.length+4);const d=q.d;const difficulty=(.35*(d.computation_complexity-1)+.4*(d.cognitive_load-1)+.25*(d.trap_level-1))/4;const mastery=(1-m)*(1-Math.abs(difficulty-Math.max(0,m-.15)));const flowFit=frustrated?((5-d.computation_complexity)+(5-d.trap_level))/8:bored?(d.cognitive_load-1)/4:1-Math.abs(difficulty-m);const last=hist.at(-1);const elapsed=last?(Date.now()-last.at)/86400000:null;const retention=last?Math.exp(-elapsed/(1+hist.filter(r=>r.correct).length*2)):null;const forgetting=last?1-retention:.35;const repeat=records.slice(-2).some(r=>r.qid===q.id)?.8:0;return{q,flow,elapsed,mastery,forgetting,score:w[0]*mastery+w[1]*flowFit+w[2]*forgetting-repeat-(window.getPrereqGap?window.getPrereqGap(q.kp):0)*0.25-Math.abs(difficulty-targetNorm)*0.35}}).sort((a,b)=>b.score-a.score)}
+function question(){const pick=recommend()[0];current=pick.q;selected=-1;changes=0;away=0;submitted=false;started=Date.now();activateState('testing');$('qnumber').textContent='初中数学 · 第 '+(records.length+1)+' 题';$('qtext').textContent=current.q;$('difficultyTags').innerHTML='<span class="reason-chip">计算量 '+current.d.computation_complexity+'/5</span><span class="reason-chip">逻辑 '+current.d.cognitive_load+'/5</span><span class="reason-chip">干扰 '+current.d.trap_level+'/5</span><span class="reason-chip">阅读 '+current.d.reading_length+' 字</span><span class="reason-chip">知识点 '+current.kp+'</span>';$('recommendReason').textContent=pick.elapsed===null?'推荐理由：尚无该知识点历史记录，先进行能力校准。':pick.elapsed>=4?'推荐理由：'+current.kp+' 已 '+Math.floor(pick.elapsed)+' 天未练习，进入复习窗口；当前状态为'+pick.flow+'。':'推荐理由：结合'+current.kp+'掌握情况与'+pick.flow+'状态，优先匹配计算量 '+current.d.computation_complexity+'/5、逻辑 '+current.d.cognitive_load+'/5 的题目。';$('feedback').textContent='';$('submit').textContent='提交答案 →';$('submit').disabled=true;$('choices').replaceChildren();current.a.forEach((a,i)=>{const button=document.createElement('button');button.className='choice';button.textContent=String.fromCharCode(65+i)+'　'+a;button.onclick=()=>window.selectChoice&&window.selectChoice(i,button,false);$('choices').append(button)})}
+const clamp=x=>Math.max(0,Math.min(100,x));function add(ok,seconds,mods,tabs=0){const prior=records.slice(-5);const baseline=prior.length?prior.reduce((s,r)=>s+r.seconds,0)/prior.length:20;streak=ok?0:streak+1;let focus=clamp(90-Math.max(0,seconds/baseline-1)*25-Math.min(24,mods*8)-Math.min(24,tabs*8));let fatigue=clamp(10+Math.max(0,seconds/baseline-1)*30+Math.min(3,streak)*12+Math.min(20,(Date.now()-sessionStart)/60000)*.5);const prev=records.at(-1);if(prev){focus=.65*prev.focus+.35*focus;fatigue=.65*prev.fatigue+.35*fatigue}const ev=evaluateAnswerState(ok,seconds,current?.kp,current?.d?.computation_complexity);records.push({n:records.length+1,qid:current?.id,kp:current?.kp||'演示数据',at:Date.now(),correct:ok,seconds:Math.round(seconds*10)/10,changes:mods,away:tabs,focus:Math.round(focus),fatigue:Math.round(fatigue),accuracy:Math.round((records.filter(r=>r.correct).length+Number(ok))/(records.length+1)*100),source:sim?'模拟':'真实',state:ev.state,desc:ev.desc,pLearned:ev.pLearned,predCorrect:ev.predCorrect});render()}
+function render(){const r=records.at(-1);for(const key of ['focus','fatigue','accuracy']){$(key).innerHTML=r?(r[key]+' <small>'+(key==='accuracy'?'%':'/ 100')+'</small>'):'';$(key+'Bar').style.width=(r?r[key]:0)+'%'}$('stats').textContent='已完成 '+records.length+' 题 · 累计修改 '+records.reduce((s,x)=>s+x.changes,0)+' 次';$('chartHint').hidden=records.length>0;if(!records.length)$('chartHint').textContent='完成第一道题，开始记录你的学习节奏';let title='准备好，就开始吧',msg='这里将解释变化的依据，并给出可自主选择的学习建议。';if(r){if(r.fatigue>=45||streak>=2){title='给自己一点调整空间';msg='最近'+streak+'次连续错误，本次用时 '+r.seconds+' 秒。可以休息片刻，或尝试基础难度。'}else if(r.focus<65){title='试着把注意力放回这一小步';msg='本次修改 '+r.changes+' 次、切出页面 '+r.away+' 次。可以先梳理思路，再继续作答。'}else{title='保持适合你的节奏';msg='本次用时 '+r.seconds+' 秒，'+(r.correct?'回答正确。':'回答有误，可以查看解析。')+' 单次表现不决定学习能力。'}}$('adviceTitle').textContent=title;$('advice').textContent=msg;$('events').replaceChildren();records.slice(-3).reverse().forEach(x=>{const st=x.state||(x.correct?'已掌握':'未掌握'),ds=x.desc||'',c=st==='已掌握'?'#178568':(st==='失误'||st==='猜测')?'#ff9800':'#f44336',el=document.createElement('div');el.className='event';el.innerHTML='<span>第 '+x.n+' 题 · <b style="color:'+c+'">'+st+'</b> <span style="font-size:.85em;color:#999">'+ds+'</span></span><span>'+x.seconds+' 秒 · '+x.source+'</span>';$('events').append(el)});if(!records.length)$('events').innerHTML='<p style="font-size:12px">暂无记录。小小的一步，也是进步。</p>';$('metricEmpty').hidden=records.length>0;draw();if(r){const slow=records.slice(-3).filter(x=>x.seconds>=28&&x.changes>=1).length;if(r.fatigue>=48||streak>=2)openCoach('rest',r);else if(slow>=2||r.focus<55&&r.changes>=2)openCoach('easy',r)}updateRhythmPanel();renderModelCheck()}
+let rhythmPinned=null,rhythmHovered=null;
+function rhythmTipFor(name){const r=records.at(-1);if(!r)return '完成第一题后，这里会显示你的节律解释。';const tot=r.focus+r.fatigue,fs=tot?Math.round(r.focus/tot*100):50;if(name==='focus'){const rec=records.slice(-3),avg=Math.round(rec.reduce((s,x)=>s+x.seconds,0)/Math.max(1,rec.length));return '专注 '+fs+'% · 原始 '+r.focus+'/100 · 最近 3 题平均用时 '+avg+' 秒'}if(name==='fatigue'){return '疲劳 '+(100-fs)+'% · 原始 '+r.fatigue+'/100 · 连续错误 '+streak+' 次'}if(name==='accuracy'){const c=records.filter(x=>x.correct).length;return '本轮正确率 '+r.accuracy+'% · 答对 '+c+'/'+records.length+' 题'}return ''}
+function rhythmDefaultTip(){const r=records.at(-1);if(!r)return '完成第一题后，这里会显示专注与疲劳的占比，以及本轮正确率。';const tot=r.focus+r.fatigue,fs=tot?Math.round(r.focus/tot*100):50;return '专注 '+fs+'% · 疲劳 '+(100-fs)+'% · 本轮正确率 '+r.accuracy+'% · 行为估算'}
+function rhythmApplyActive(){const panel=document.querySelector('.rhythm-panel'),tipEl=$('rhythmTip'),name=rhythmPinned||rhythmHovered;if(name){panel.dataset.active=name;tipEl.textContent=rhythmTipFor(name)}else{delete panel.dataset.active;tipEl.textContent=rhythmDefaultTip()}document.querySelectorAll('.metric[data-metric]').forEach(m=>m.classList.toggle('is-active',m.dataset.metric===name))}
+function pieSlice(cx,cy,r,startDeg,endDeg){const a=(startDeg-90)*Math.PI/180,b=(endDeg-90)*Math.PI/180;const x1=cx+r*Math.cos(a),y1=cy+r*Math.sin(a),x2=cx+r*Math.cos(b),y2=cy+r*Math.sin(b);const large=(endDeg-startDeg)>180?1:0;return 'M '+cx+' '+cy+' L '+x1.toFixed(2)+' '+y1.toFixed(2)+' A '+r+' '+r+' 0 '+large+' 1 '+x2.toFixed(2)+' '+y2.toFixed(2)+' Z'}
+function updateRhythmPanel(){const panel=document.querySelector('.rhythm-panel'),stateEl=$('rhythmState'),ringEl=$('rhythmRing');const pieF=document.querySelector('.pie-focus'),pieT=document.querySelector('.pie-fatigue'),ringArc=document.querySelector('.acc-ring-arc');const fsEl=$('focusShare'),faEl=$('fatigueShare'),acEl=$('accuracyShare');const r=records.at(-1);if(!r){panel.classList.remove('has-data');if(pieF)pieF.setAttribute('d','');if(pieT)pieT.setAttribute('d','');if(ringArc)ringArc.style.strokeDashoffset=100;if(fsEl)fsEl.textContent='—';if(faEl)faEl.textContent='—';if(acEl)acEl.textContent='—';$('accuracy').innerHTML='<span class="acc-empty">完成一题后生成</span>';stateEl.textContent='完成更多题目后，这里会呈现你的节律变化。';ringEl.setAttribute('aria-label','今日节律：待开始');rhythmPinned=null;rhythmHovered=null;rhythmApplyActive();return}panel.classList.add('has-data');const tot=r.focus+r.fatigue;let fs=50,fa=50;if(tot>0){fs=Math.round(r.focus/tot*100);fa=100-fs}if(fsEl)fsEl.textContent=fs+'%';if(faEl)faEl.textContent=fa+'%';if(acEl)acEl.textContent=r.accuracy+'%';if(pieF)pieF.setAttribute('d',pieSlice(120,120,76,0,fs*3.6));if(pieT)pieT.setAttribute('d',pieSlice(120,120,76,fs*3.6,360));if(ringArc)ringArc.style.strokeDashoffset=100-(r.accuracy||0);let note;if(fs>=fa+10)note='专注率更高，本轮正确率也随之提升。';else if(fa>=fs+10)note='疲劳占比偏高，先缓一缓，再继续会更有把握。';else note='专注与疲劳大致平衡，本轮正确率保持稳定。';stateEl.textContent=note;ringEl.setAttribute('aria-label','今日节律：专注 '+fs+'%，疲劳 '+fa+'%，本轮正确率 '+(r.accuracy||0)+'%');rhythmApplyActive()}
+document.querySelectorAll('.metric[data-metric]').forEach(m=>{const name=m.dataset.metric;m.addEventListener('pointerenter',()=>{rhythmHovered=name;rhythmApplyActive()});m.addEventListener('pointerleave',()=>{if(rhythmHovered===name){rhythmHovered=null;rhythmApplyActive()}});m.addEventListener('focus',()=>{rhythmHovered=name;rhythmApplyActive()});m.addEventListener('blur',()=>{if(rhythmHovered===name){rhythmHovered=null;rhythmApplyActive()}});m.addEventListener('click',()=>{rhythmPinned=(rhythmPinned===name)?null:name;rhythmHovered=null;rhythmApplyActive()});m.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();rhythmPinned=(rhythmPinned===name)?null:name;rhythmHovered=null;rhythmApplyActive()}})});
+function modelCalibration(){
+  let mae=0,n=0;
+  records.forEach(r=>{if(r.predCorrect!=null){mae+=Math.abs(r.predCorrect-(r.correct?100:0));n++;}});
+  return n?{mae:Math.round(mae/n),n}:null;
+}
+function renderModelCheck(){
+  const el=$('modelCheck');if(!el)return;
+  const c=modelCalibration();
+  el.textContent=c?('模型校准：预测正确率平均误差 '+c.mae+' 个百分点 · 基于 '+c.n+' 条作答（越低越准）'):'模型校准：再做几题后显示（预测 vs 实际）';
+}
+function draw(){const canvas=$('chart'),w=canvas.clientWidth,h=230,dpr=window.devicePixelRatio||1;if(!w)return;canvas.width=w*dpr;canvas.height=h*dpr;const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);const l=32,rt=w-15,top=12,bot=h-25;c.font='11px Segoe UI';for(let v=0;v<=100;v+=25){const y=bot-(bot-top)*v/100;c.strokeStyle='#edf0eb';c.beginPath();c.moveTo(l,y);c.lineTo(rt,y);c.stroke();c.fillStyle='#8b9690';c.fillText(v,2,y+4)}const rs=records.slice(-15);['focus','fatigue','accuracy'].forEach((key,k)=>{c.strokeStyle=['#37886c','#c39b61','#8999c3'][k];c.lineWidth=2;c.beginPath();rs.forEach((x,i)=>{const px=l+i*(rt-l)/Math.max(1,rs.length-1),py=bot-x[key]/100*(bot-top);i?c.lineTo(px,py):c.moveTo(px,py)});c.stroke();rs.forEach((x,i)=>{const px=l+i*(rt-l)/Math.max(1,rs.length-1),py=bot-x[key]/100*(bot-top);c.beginPath();c.arc(px,py,3,0,Math.PI*2);c.fillStyle=c.strokeStyle;c.fill()})});c.fillStyle='#8b9690';rs.forEach((x,i)=>c.fillText(x.n,l+i*(rt-l)/Math.max(1,rs.length-1)-3,h-5))}
+function toast(s){$('toast').textContent=s;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3000)}
+function reset(simulation=false){clearInterval(simTimer);closeCoach();paused=false;document.body.classList.remove('pause-locked');$('pauseOverlay').hidden=true;$('nextTest').disabled=false;$('startTest').disabled=false;records=[];usedQids.clear();index=0;streak=0;isEasy=false;sim=simulation;sessionStart=Date.now();lastPrompt='';$('level').textContent='基础难度';$('mode').textContent=sim?'● 模拟数据演示':'● 真实练习模式';$('simulate').disabled=sim;try{localStorage.removeItem('learning-demo-records')}catch{}activateState('idle');render()}
+['wm','wf','wr'].forEach((id,i)=>$(id).oninput=()=>{const vals=['wm','wf','wr'].map(key=>+$(key).value),sum=vals.reduce((a,b)=>a+b,0)||1;['wmv','wfv','wrv'].forEach((key,j)=>$(key).textContent=Math.round(vals[j]/sum*100)+'%')});$('submit').onclick=()=>{if(paused)return;if(submitted){$('resultTitle').textContent=records.at(-1)?.correct?'回答正确':'答案已记录';$('resultText').textContent=$('feedback').textContent+' 系统已将本次表现计入学习趋势。';activateState('submitted');return}if(selected<0)return;if(sim)return;const ok=selected===current.k;submitted=true;add(ok,(Date.now()-started)/1000,changes,away);$('feedback').textContent=(ok?'✓ 回答正确。':'正确答案：'+current.a[current.k]+'。')+current.e;$('feedback').style.color=ok?'#23745e':'#9d703c';$('resultTitle').textContent=ok?'回答正确':'再巩固一次';$('resultText').textContent=$('feedback').textContent;activateState('submitted')};$('startTest').onclick=()=>{if(!sim)question();else toast('请先重新开始真实练习')};$('nextTest').onclick=()=>question();$('reset').onclick=()=>reset(false);document.querySelectorAll('nav button').forEach((item,i)=>item.onclick=()=>showView(['dashboardView','practiceView','trendsView','recordsView','leaderboardView','logicView'][i]));document.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>showView(button.dataset.page));$('simulate').onclick=()=>{if(records.length&&!confirm('演示将清空当前 '+records.length+' 条作答记录，确定继续吗？'))return;reset(true);const data=[[true,12,0],[true,15,0],[true,17,1],[false,30,2],[false,45,3],[false,60,4],[true,22,1],[true,15,0]];let i=0;simTimer=setInterval(()=>{const d=data[i++];add(...d);if(i===data.length){clearInterval(simTimer);$('simulate').disabled=false;toast('演示完成：可重新开始真实练习')}},850)};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCoach()});$('export').onclick=()=>{if(!records.length){toast('请先完成一道题');return}const blob=new Blob(['﻿'+['序号,结果,用时秒,修改次数,切出次数,专注估算,疲劳估算,正确率,来源',...records.map(r=>[r.n,r.correct?'正确':'错误',r.seconds,r.changes,r.away,r.focus,r.fatigue,r.accuracy,r.source].join(','))].join('\r\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='学习状态记录.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};document.addEventListener('visibilitychange',()=>{if(document.hidden&&testState==='testing'&&!paused&&!submitted&&!sim)away++});window.addEventListener('resize',draw);setInterval(()=>{if(testState==='testing'&&!paused&&!submitted){const s=Math.floor((Date.now()-started)/1000);$('timer').textContent='用时 '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}},500);
+</script><script>
+(function(){
+  const restText='建议休息一会儿，多久由你决定，随时可以结束。';
+  const enabledKey='learning-dashboard-coach-enabled-v1';
+  const signal=$('practiceSignalPanel'),analysis=$('analysisStatus'),card=$('coachCard'),title=$('coachTitle'),message=$('coachText'),countdown=$('coachCountdown');
+  let coachEnabled=true,coachPending=false,scanTimer=0,restTimer=0,cooldownUntil=0,restStarted=0,restActive=false,activeKind='rest';
+  try{coachEnabled=localStorage.getItem(enabledKey)!=='false'}catch{}
+  $('coachToggle').checked=coachEnabled;
+  function updateCoachToggle(){
+    $('coachState').textContent=coachEnabled?'自动陪练已开启':'自动陪练已暂停';
+    $('coachCaption').textContent=coachEnabled?'系统会根据作答节奏主动提醒你':'你可以随时重新开启陪练提醒';
+  }
+  function updatePracticeMetrics(){const r=records.at(-1);$('practiceFocus').textContent=r?String(r.focus)+'/100':'—';$('practiceFatigue').textContent=r?String(r.fatigue)+'/100':'—'}
+  function setCoachActionsDisabled(disabled){['coachRest','coachEasy','coachLater','coachDismiss'].forEach(id=>$(id).disabled=disabled)}
+  const baseRender=window.render;
+  window.render=function(){baseRender();updatePracticeMetrics()};
+  function clearScan(){clearTimeout(scanTimer);coachPending=false;signal.classList.remove('scanning');analysis.classList.remove('active');document.querySelectorAll('#dashboardView .metric').forEach((el,i)=>{if(i<2)el.classList.remove('scanning')})}
+  function closeCoach(setCooldown=true){
+    if(restActive)return;
+    clearScan();card.hidden=true;
+    if(setCooldown)cooldownUntil=Date.now()+60000;
+  }
+  function openCoach(kind){
+    if(!coachEnabled||paused||coachPending||Date.now()<cooldownUntil||Date.now()-Number(lastPrompt||0)<20000)return;
+    lastPrompt=Date.now();activeKind=kind;coachPending=true;
+    analysis.classList.add('active');signal.classList.add('scanning');
+    setCoachActionsDisabled(false);
+    document.querySelectorAll('#dashboardView .metric').forEach((el,i)=>{if(i<2)el.classList.add('scanning')});
+    clearTimeout(scanTimer);scanTimer=setTimeout(()=>{
+      clearScan();title.textContent=kind==='rest'?'你的学习节奏需要一点缓冲':'试试切换到基础题';
+      message.textContent=kind==='rest'?restText:'最近的作答节奏有些吃力。这是行为信号估算，你可以采纳或继续挑战。';
+      $('coachRest').hidden=kind!=='rest';$('coachEasy').hidden=kind!=='easy';countdown.hidden=true;$('coachGame').hidden=true;card.hidden=false;
+    },1500);
+  }
+  function finishRest(reason){
+    if(!restActive)return;
+    clearInterval(restTimer);restTimer=0;restActive=false;paused=false;
+    if(testState==='testing')started+=Date.now()-restStarted;
+    const cleared=window.RestGame?.stop()||0;
+    const gameSecs=window.RestGame?.getDuration?.()||0;
+    if(gameSecs>0)window.pushGameSession?.(gameSecs);
+    $('coachRest').textContent='休息一下';
+    setCoachActionsDisabled(false);
+    $('submit').disabled=!submitted&&selected<0;$('nextTest').disabled=false;
+    closeCoach(true);toast(reason==='gameover'?('本局结束 · 先完成一题再继续'+(cleared>0?' · 躲过 '+cleared+' 个':'')):('休息结束，可以继续'+(cleared>0?' · 躲过 '+cleared+' 个':'')));
+  }
+  function startRest(){
+    if(restActive||paused)return;
+    restActive=true;restStarted=Date.now();paused=true;
+    title.textContent='休息中';message.textContent='计时已暂停，休息多久由你决定；随时可以结束。';
+    countdown.hidden=false;countdown.textContent='已休息 00:00';
+    $('coachRest').textContent='结束休息 →';
+    $('coachEasy').disabled=true;$('coachLater').disabled=true;$('coachDismiss').disabled=true;
+    $('submit').disabled=true;$('nextTest').disabled=true;
+    const tick=()=>{const s=Math.floor((Date.now()-restStarted)/1000);countdown.textContent='已休息 '+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+    tick();restTimer=setInterval(tick,1000);
+    window.RestGame?.start();
+  }
+  function chooseEasy(){closeCoach(true);isEasy=true;$('level').textContent='已切换为基础难度';question()}
+  $('coachRest').onclick=()=>{if(restActive)finishRest();else startRest()};$('coachEasy').onclick=chooseEasy;$('coachLater').onclick=()=>closeCoach(true);$('coachDismiss').onclick=()=>closeCoach(true);
+  $('coachToggle').addEventListener('change',()=>{coachEnabled=$('coachToggle').checked;try{localStorage.setItem(enabledKey,String(coachEnabled))}catch{}updateCoachToggle();if(!coachEnabled)closeCoach(false)});
+  const baseReset=window.reset;window.reset=function(...args){clearInterval(restTimer);restTimer=0;restActive=false;paused=false;$('coachRest').textContent='休息一下';window.RestGame?.stop();setCoachActionsDisabled(false);closeCoach(false);return baseReset(...args)};
+  window.openCoach=openCoach;window.closeCoach=closeCoach;window.startCoachRest=startRest;window.finishCoachRest=finishRest;window.restTimerActive=()=>restActive;
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!restActive)closeCoach()});
+  updateCoachToggle();updatePracticeMetrics();showView('dashboardView');activateState('idle');render();
+})();
+</script><script>
+(function(){
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  function quantile(values,p){
+    const sorted=values.slice().sort((a,b)=>a-b),pos=(sorted.length-1)*p,lo=Math.floor(pos),f=pos-lo;
+    return sorted[lo]*(1-f)+sorted[Math.min(lo+1,sorted.length-1)]*f;
+  }
+  function basisAt(x,knots,degree,count){
+    const t=x>=1?1-1e-10:Math.max(0,x),base=[];
+    for(let i=0;i<knots.length-1;i++)base[i]=t>=knots[i]&&t<knots[i+1]?1:0;
+    let values=base;
+    for(let d=1;d<=degree;d++){
+      const next=[];
+      for(let i=0;i<values.length-1;i++){
+        const leftDen=knots[i+d]-knots[i],rightDen=knots[i+d+1]-knots[i+1];
+        const left=leftDen?((t-knots[i])/leftDen)*values[i]:0;
+        const right=rightDen?((knots[i+d+1]-t)/rightDen)*values[i+1]:0;
+        next[i]=left+right;
+      }
+      values=next;
+    }
+    return values.slice(0,count);
+  }
+  function inverse(matrix){
+    const n=matrix.length,a=matrix.map((row,i)=>row.concat(Array.from({length:n},(_,j)=>i===j?1:0)));
+    for(let col=0;col<n;col++){
+      let pivot=col;
+      for(let row=col+1;row<n;row++)if(Math.abs(a[row][col])>Math.abs(a[pivot][col]))pivot=row;
+      if(Math.abs(a[pivot][col])<1e-12)return null;
+      [a[col],a[pivot]]=[a[pivot],a[col]];
+      const scale=a[col][col];for(let j=0;j<2*n;j++)a[col][j]/=scale;
+      for(let row=0;row<n;row++)if(row!==col){const factor=a[row][col];for(let j=0;j<2*n;j++)a[row][j]-=factor*a[col][j]}
+    }
+    return a.map(row=>row.slice(n));
+  }
+  function adaptiveSplineFit(values){
+    const n=values.length;if(n<6)return values.slice();
+    const degree=3,K=Math.max(1,Math.min(4,Math.ceil(n/5)-1)),interior=[];
+    for(let j=1;j<=K;j++)interior.push(quantile(values.map((_,i)=>i/(n-1)),j/(K+1)));
+    const knots=[...Array(degree+1).fill(0),...interior,...Array(degree+1).fill(1)],p=K+degree+1;
+    const xs=values.map((_,i)=>i/(n-1)),X=xs.map(x=>basisAt(x,knots,degree,p));
+    const XtX=Array.from({length:p},()=>Array(p).fill(0)),XtY=Array(p).fill(0);
+    for(let r=0;r<n;r++)for(let i=0;i<p;i++){XtY[i]+=X[r][i]*values[r];for(let j=0;j<p;j++)XtX[i][j]+=X[r][i]*X[r][j]}
+    const ranges=[];
+    for(let j=0;j<p-2;j++){
+      const lo=knots[j],hi=knots[Math.min(j+degree+3,knots.length-1)],local=[];
+      for(let i=0;i<n;i++)if(xs[i]>=lo-1e-10&&xs[i]<=hi+1e-10)local.push(values[i]);
+      if(!local.length)local.push(values[Math.min(n-1,Math.round((lo+hi)*.5*(n-1)))]);
+      ranges.push(Math.max(...local)-Math.min(...local));
+    }
+    const maxRange=Math.max(...ranges),weights=ranges.map(r=>maxRange>1e-12?Math.pow(Math.max(0,(maxRange-r)/maxRange),2):1);
+    const G=Array.from({length:p},()=>Array(p).fill(0));
+    for(let j=0;j<p-2;j++){
+      const w=weights[j]*weights[j],d=[1,-2,1];
+      for(let a=0;a<3;a++)for(let b=0;b<3;b++)G[j+a][j+b]+=w*d[a]*d[b];
+    }
+    const traceX=XtX.reduce((s,row,i)=>s+row[i],0),traceG=G.reduce((s,row,i)=>s+row[i],0);
+    if(traceG<1e-12)return values.slice();
+    const scale=(traceX/p)/(traceG/p),multipliers=[.003,.01,.03,.1,.3,1,3,10,30];
+    let best=null,bestGcv=Infinity;
+    for(const multiplier of multipliers){
+      const lambda=scale*multiplier,A=XtX.map((row,i)=>row.map((v,j)=>v+lambda*G[i][j])),inv=inverse(A);if(!inv)continue;
+      const beta=inv.map(row=>row.reduce((s,v,j)=>s+v*XtY[j],0)),fit=X.map(row=>row.reduce((s,v,j)=>s+v*beta[j],0));
+      const rss=fit.reduce((s,v,i)=>s+(v-values[i])**2,0);let df=0;
+      for(let i=0;i<p;i++)for(let j=0;j<p;j++)df+=inv[i][j]*XtX[j][i];
+      const denom=Math.max(.02,1-df/n),gcv=(rss/n)/(denom*denom);
+      if(gcv<bestGcv){bestGcv=gcv;best=fit}
+    }
+    return best||values.slice();
+  }
+  window.adaptiveSplineFit=adaptiveSplineFit;
+  window.draw=function(){
+    const canvas=$('chart'),w=canvas.clientWidth,h=230,dpr=window.devicePixelRatio||1;if(!w)return;
+    canvas.width=w*dpr;canvas.height=h*dpr;const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+    const l=32,rt=w-15,top=12,bot=h-25;c.font='11px Segoe UI';
+    for(let v=0;v<=100;v+=25){const y=bot-(bot-top)*v/100;c.strokeStyle='#edf0eb';c.beginPath();c.moveTo(l,y);c.lineTo(rt,y);c.stroke();c.fillStyle='#8b9690';c.fillText(v,2,y+4)}
+    const rs=records.slice(-15),keys=['focus','fatigue','accuracy'],colors=['#37886c','#c39b61','#8999c3'];
+    keys.forEach((key,k)=>{
+      const raw=rs.map(row=>row[key]),smooth=adaptiveSplineFit(raw),xAt=i=>l+i*(rt-l)/Math.max(1,rs.length-1),yAt=v=>bot-v/100*(bot-top);
+      c.globalAlpha=.3;c.strokeStyle=colors[k];c.lineWidth=1;c.beginPath();raw.forEach((v,i)=>i?c.lineTo(xAt(i),yAt(v)):c.moveTo(xAt(i),yAt(v)));c.stroke();
+      raw.forEach((v,i)=>{c.beginPath();c.arc(xAt(i),yAt(v),2.5,0,Math.PI*2);c.fillStyle=colors[k];c.fill()});
+      c.globalAlpha=1;c.strokeStyle=colors[k];c.lineWidth=2.6;c.beginPath();smooth.forEach((v,i)=>i?c.lineTo(xAt(i),yAt(v)):c.moveTo(xAt(i),yAt(v)));c.stroke();
+    });
+    c.globalAlpha=1;c.fillStyle='#8b9690';rs.forEach((row,i)=>c.fillText(row.n,l+i*(rt-l)/Math.max(1,rs.length-1)-3,h-5));
+  };
+  const note=document.createElement('div');note.className='spline-method-note';note.textContent='浅色细线：单次状态估算　实色线：局部自适应惩罚样条趋势';const fatigueNotice=$('fatigueNotice');if(fatigueNotice)fatigueNotice.insertAdjacentElement('afterend',note);else $('chart').closest('.chart-wrap').insertAdjacentElement('afterend',note);
+  window.addEventListener('resize',window.draw);window.draw();
+})();
+</script><script>
+(function(){
+  const feedbackKey='learning-dashboard-answer-feedback-v1';
+  let answerFeedback={};
+  try{answerFeedback=JSON.parse(localStorage.getItem(feedbackKey)||'{}');if(!answerFeedback||typeof answerFeedback!=='object'||Array.isArray(answerFeedback))answerFeedback={}}catch{answerFeedback={}}
+  const questionBase=window.question;
+  window.question=function(...args){$('answerReview').hidden=true;$('feedback').textContent='';$('feedback').style.color='';$('submit').textContent='提交答案 →';$('viewTrends').hidden=false;return questionBase.apply(this,args)};
+  function saveFeedback(value){if(!current)return;answerFeedback[current.id]=value;try{localStorage.setItem(feedbackKey,JSON.stringify(answerFeedback))}catch{};[$('feedbackUnderstood'),$('feedbackUnclear')].forEach(button=>{const active=button.dataset.value===value;button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active))});toast(value==='understood'?'已记录：这题帮你理解了':'已记录：这题还需要再梳理')}
+  $('feedbackUnderstood').dataset.value='understood';$('feedbackUnclear').dataset.value='unclear';
+  $('feedbackUnderstood').onclick=()=>saveFeedback('understood');$('feedbackUnclear').onclick=()=>saveFeedback('unclear');
+  $('viewTrends').onclick=()=>showView('trendsView');
+  $('submit').onclick=()=>{
+    if(paused)return;
+    if(submitted){window.question();return}
+    if(selected<0||sim)return;
+    const ok=selected===current.k,seconds=(Date.now()-started)/1000,correctLetter=String.fromCharCode(65+current.k);
+    submitted=true;add(ok,seconds,changes,away);
+    $('feedback').textContent=ok?'回答正确。':'回答错误。正确答案是 '+correctLetter+'。';
+    $('feedback').style.color=ok?'#23745e':'#9d703c';
+    $('reviewExplanation').textContent=current.e;
+    $('reviewMeta').textContent='用时 '+seconds.toFixed(1)+' 秒 · 修改 '+changes+' 次';
+    $('answerReview').hidden=false;
+    const priorFeedback=answerFeedback[current.id];
+    [$('feedbackUnderstood'),$('feedbackUnclear')].forEach(button=>{const active=button.dataset.value===priorFeedback;button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active))});
+    [...$('choices').children].forEach((button,index)=>{
+      button.disabled=true;
+      const label=document.createElement('span');label.className='choice-status';
+      if(index===current.k){button.classList.add('choice-correct');label.textContent='✓ 正确答案';button.append(label)}
+      else if(index===selected){button.classList.add('choice-wrong');label.textContent='✗ 你的选择';button.append(label)}
+      else button.classList.add('choice-dim');
+    });
+    $('submit').textContent='下一题 →';$('submit').disabled=false;$('viewTrends').hidden=false;
+    $('reviewHeading').focus({preventScroll:true});
+  };
+})();
+</script><script>
+(function(){
+  const stateKey='learning-dashboard-state-v1',todayKey=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})(),feedbackKey='learning-dashboard-answer-feedback-v1';
+  let answerFeedback={},roundGoal=5,roundCount=0,day=todayKey,dayCount=0,replaying=false,replayQueue=[],activePause='',pauseStartedAt=0,lastActivity=Date.now(),showAll=false,selectedChartIndex=-1,chartDotMode='show',hoverIndex=-1,toastTimer=0,sessionStartRecord=0,recordsFilter='all';
+  const saveState=()=>{try{localStorage.setItem(stateKey,JSON.stringify({records,weights:['wm','wf','wr'].map(id=>+$(id).value),isEasy,roundGoal,roundCount,dayCount,day,updatedAt:Date.now()}))}catch{}};
+  try{const saved=JSON.parse(localStorage.getItem(stateKey)||'null');if(saved&&Array.isArray(saved.records)){records=saved.records;isEasy=!!saved.isEasy;roundGoal=[3,5,7,9,10].includes(+saved.roundGoal)?+saved.roundGoal:5;day=saved.day===todayKey?todayKey:todayKey;roundCount=saved.day===todayKey?Number(saved.roundCount)||0:0;dayCount=saved.day===todayKey?Number(saved.dayCount)||0:0;if(Array.isArray(saved.weights))saved.weights.forEach((v,i)=>{const el=$(['wm','wf','wr'][i]);if(el)el.value=String(Math.max(0,Math.min(100,Number(v)||0)))})}}catch{};
+  try{answerFeedback=JSON.parse(localStorage.getItem(feedbackKey)||'{}');if(!answerFeedback||typeof answerFeedback!=='object'||Array.isArray(answerFeedback))answerFeedback={}}catch{answerFeedback={}}
+  const GOAL_LEVELS=[{name:'Low',count:3,difficulty:1},{name:'Medium',count:5,difficulty:2},{name:'High',count:7,difficulty:3},{name:'Advanced',count:9,difficulty:4},{name:'Extra High',count:10,difficulty:5}];
+  let goalLevel=GOAL_LEVELS.findIndex(l=>l.count===roundGoal);if(goalLevel<0)goalLevel=1;targetDifficulty=GOAL_LEVELS[goalLevel].difficulty;
+  const goalName=l=>GOAL_LEVELS[l].name;const goalValue=l=>GOAL_LEVELS[l].count+' Qs · Lv '+GOAL_LEVELS[l].difficulty;
+  const goalShow=(lv,thumbPct)=>{$('levelFill').style.width=thumbPct+'%';$('levelThumb').style.left=thumbPct+'%';$('goalLevelName').textContent=goalName(lv);$('goalValue').textContent=goalValue(lv);$('goalTriggerValue').textContent=goalName(lv)+' · '+goalValue(lv);$('goalHint').hidden=lv<GOAL_LEVELS.length-1;$('levelFill').classList.toggle('at-max',lv>=GOAL_LEVELS.length-1);$('levelSlider').setAttribute('aria-valuenow',lv);$('levelSlider').setAttribute('aria-valuetext',goalName(lv)+' · '+goalValue(lv));updateGoalMenu()};
+  const goalCommit=()=>{const g=GOAL_LEVELS[goalLevel];roundGoal=g.count;targetDifficulty=g.difficulty;roundCount=0;updateProgress();saveState()};
+  const goalPct=l=>(l/(GOAL_LEVELS.length-1))*100;
+  let goalDrag=goalLevel,goalDragging=false;
+  const levelFromX=x=>{const r=$('levelSlider').getBoundingClientRect();return Math.max(0,Math.min(1,(x-r.left)/r.width))*(GOAL_LEVELS.length-1)};
+  const goalSlider=$('levelSlider');GOAL_LEVELS.forEach(()=>{const t=document.createElement('span');t.className='level-tick';$('levelTicks').appendChild(t)});
+  goalSlider.addEventListener('pointerdown',e=>{if(e.button!==0)return;goalDragging=true;goalDrag=levelFromX(e.clientX);goalSlider.classList.add('dragging');goalSlider.setPointerCapture(e.pointerId);goalShow(Math.round(goalDrag),goalPct(goalDrag))});
+  goalSlider.addEventListener('pointermove',e=>{if(!goalDragging)return;goalDrag=levelFromX(e.clientX);goalShow(Math.round(goalDrag),goalPct(goalDrag))});
+  const goalEnd=()=>{if(!goalDragging)return;goalDragging=false;goalSlider.classList.remove('dragging');goalLevel=Math.round(goalDrag);goalShow(goalLevel,goalPct(goalLevel));goalCommit()};
+  goalSlider.addEventListener('pointerup',goalEnd);goalSlider.addEventListener('pointercancel',()=>{if(goalDragging){goalDragging=false;goalSlider.classList.remove('dragging')}});
+  goalSlider.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();goalLevel=Math.min(GOAL_LEVELS.length-1,goalLevel+1);goalShow(goalLevel,goalPct(goalLevel));goalCommit()}else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();goalLevel=Math.max(0,goalLevel-1);goalShow(goalLevel,goalPct(goalLevel));goalCommit()}else if(e.key==='Home'){e.preventDefault();goalLevel=0;goalShow(goalLevel,goalPct(goalLevel));goalCommit()}else if(e.key==='End'){e.preventDefault();goalLevel=GOAL_LEVELS.length-1;goalShow(goalLevel,goalPct(goalLevel));goalCommit()}});
+  const goalCard=$('goalCard');
+  const goalMenu=$('goalMenu');
+  const updateGoalMenu=()=>{goalMenu.querySelectorAll('button').forEach(b=>b.classList.toggle('active',+b.dataset.goal===goalLevel))};
+  goalMenu.innerHTML=GOAL_LEVELS.map((g,i)=>'<li><button type="button" data-goal="'+i+'"><span>'+g.name+'</span><span class="sub">'+g.count+' Qs · Lv '+g.difficulty+'</span></button></li>').join('');
+  goalMenu.querySelectorAll('button').forEach(b=>{b.onclick=()=>{goalLevel=+b.dataset.goal;goalShow(goalLevel,goalPct(goalLevel));goalCommit();closeGoalMenu()}});
+  const closeGoalMenu=()=>{goalMenu.hidden=true;$('goalSelect').setAttribute('aria-expanded','false')};
+  const closeGoalCard=()=>{goalCard.hidden=true;$('goalTrigger').setAttribute('aria-expanded','false');closeGoalMenu()};
+  $('goalTrigger').onclick=()=>{const open=goalCard.hidden;goalCard.hidden=!open;$('goalTrigger').setAttribute('aria-expanded',String(open));if(!open)closeGoalMenu()};
+  $('goalSelect').onclick=()=>{const open=goalMenu.hidden;goalMenu.hidden=!open;$('goalSelect').setAttribute('aria-expanded',String(open));updateGoalMenu()};
+  document.addEventListener('click',e=>{if(!goalMenu.hidden&&!goalMenu.contains(e.target)&&!$('goalSelect').contains(e.target))closeGoalMenu();if(!goalCard.hidden&&!goalCard.contains(e.target)&&!$('goalTrigger').contains(e.target))closeGoalCard()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!goalMenu.hidden)closeGoalMenu();else if(!goalCard.hidden)closeGoalCard()}});
+  ['dragstart','selectstart'].forEach(ev=>goalSlider.addEventListener(ev,e=>e.preventDefault()));goalSlider.setAttribute('draggable','false');
+  goalShow(goalLevel,goalPct(goalLevel));
+  const updateProgress=()=>{$('goalProgress').max=roundGoal;$('goalProgress').value=Math.min(roundCount,roundGoal);$('goalLabel').textContent='本轮进度 '+Math.min(roundCount,roundGoal)+'/'+roundGoal+' · 今日 '+dayCount+' 题'};
+  const baseToast=window.toast;window.toast=function(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').classList.add('toast-visible');toastTimer=setTimeout(()=>$('toast').classList.remove('toast-visible'),3000)};
+  function renderEvents(){const all=records,wrong=all.filter(r=>!r.correct),rows=recordsFilter==='wrong'?wrong:all,host=$('events');$('recordsAllCount').textContent=all.length;$('recordsWrongCount').textContent=wrong.length;$('recordTotal').textContent=all.length;$('recordWrong').textContent=wrong.length;$('recordAccuracy').textContent=all.length?Math.round(all.filter(r=>r.correct).length/all.length*100)+'%':'—';host.replaceChildren();if(!rows.length){host.innerHTML='<p style="font-size:12px">'+(recordsFilter==='wrong'?'暂时没有错题，继续保持。':'还没有作答记录，去练习一题吧。')+'</p>';return}rows.slice().reverse().forEach(row=>{const st=row.state||(row.correct?'已掌握':'未掌握'),ds=row.desc||'',c=st==='已掌握'?'#178568':(st==='失误'||st==='猜测')?'#ff9800':'#f44336',detail=document.createElement('details'),summary=document.createElement('summary'),label=document.createElement('span'),meta=document.createElement('span');detail.className='review-event';label.innerHTML='第 '+row.n+' 题 · <b style="color:'+c+'">'+st+'</b><span style="font-size:.85em;color:#999"> '+ds+'</span>'+(row.replay?' · 重练':'');meta.textContent=row.seconds+' 秒 · '+(row.source||'真实');summary.append(label,meta);detail.append(summary);const questionText=document.createElement('p');questionText.textContent=row.question||'题目内容暂不可用';const answer=document.createElement('p');answer.textContent='你的选择：'+(row.selectedText||'未记录')+' · 正确答案：'+(row.correctAnswer||'未记录');const explanation=document.createElement('p');explanation.textContent='解析：'+(row.explanation||'暂无解析');const stats=document.createElement('p');stats.textContent='用时 '+row.seconds+' 秒 · 修改 '+row.changes+' 次';detail.append(questionText,answer,explanation,stats);if(!row.correct&&row.qid&&bank.some(q=>q.id===row.qid)){const button=document.createElement('button');button.type='button';button.className='wrong-review';button.textContent='再练一次';button.onclick=()=>{replayQueue.unshift(row.qid);beginQuestion(true)};detail.append(button)}host.append(detail)})}
+  window.renderRecords=renderEvents;
+  $('recordsTabAll').onclick=()=>{recordsFilter='all';$('recordsTabAll').setAttribute('aria-selected','true');$('recordsTabWrong').setAttribute('aria-selected','false');renderEvents()};
+  $('recordsTabWrong').onclick=()=>{recordsFilter='wrong';$('recordsTabWrong').setAttribute('aria-selected','true');$('recordsTabAll').setAttribute('aria-selected','false');renderEvents()};
+  const renderBefore=window.render;window.render=function(){renderBefore();renderEvents();updateProgress()};
+  const addBefore=window.add;window.add=function(...args){const length=records.length;const result=addBefore.apply(this,args);if(records.length>length){const row=records.at(-1);row.qid=current?.id;if(current?.id)usedQids.add(current.id);row.question=current?.q;row.selected=selected;row.selectedText=current?.a?.[selected];row.correctAnswer=current?.a?.[current?.k];row.explanation=current?.e;row.score=scoreAnswer(current?.d?.computation_complexity,row.seconds,row.correct);row.replay=replaying;row.source=replaying?'错题重练':row.source;if(!replaying){roundCount++;dayCount++}saveState();renderEvents();updateProgress()}return result};
+  const resetBefore=window.reset;window.reset=function(simulation=false){if(!simulation&&records.length&&!confirm('重新开始将清空 '+records.length+' 条作答记录，确定继续吗？'))return;cleanupAutoNext();correctStreak=0;const result=resetBefore.apply(this,arguments);roundCount=0;dayCount=0;replaying=false;replayQueue=[];window.targetKp=null;if(!simulation)window.clearCloudRecords?.();try{localStorage.removeItem(stateKey)}catch{};saveState();updateProgress();return result};
+  const questionBefore=window.question;
+  window.question=function(...args){$('answerReview').hidden=true;$('feedback').textContent='';$('feedback').style.color='';$('submit').textContent='提交答案 →';$('viewTrends').hidden=false;replaying=false;resetTapState();const replayId=replayQueue.shift();const result=questionBefore.apply(this,args);if(replayId){const replayQuestion=bank.find(q=>q.id===replayId);if(replayQuestion){current=replayQuestion;replaying=true;$('qnumber').textContent='错题重练 · '+replayQuestion.kp;$('qtext').textContent=replayQuestion.q;$('difficultyTags').innerHTML='<span class="reason-chip">重练</span><span class="reason-chip">知识点 '+replayQuestion.kp+'</span>';populateChoices(replayQuestion)}}$('qtext').focus({preventScroll:true});updateQuestionChrome();drawChart();return result};
+  function populateChoices(q){selected=-1;submitted=false;armedIndex=-1;$('choices').replaceChildren();$('submit').disabled=true;q.a.forEach((value,index)=>{const button=document.createElement('button');button.type='button';button.className='choice';button.textContent=String.fromCharCode(65+index)+'　'+value;button.setAttribute('aria-keyshortcuts',String(index+1)+' '+String.fromCharCode(65+index));button.onclick=()=>selectChoice(index,button,false);$('choices').append(button)})}
+  function updateQuestionChrome(){const complexity=current?.d?.computation_complexity||2,ranges={1:'20–40 秒',2:'40–70 秒',3:'60–90 秒',4:'80–120 秒',5:'100–150 秒'};$('timerHint').textContent='建议用时 '+ranges[complexity];$('focusNote').textContent='已修改 '+changes+' 次 · 离开 '+away+' 次 · 仅用于估算，不评价你。';const elapsed=started?Math.max(0,(Date.now()-started)/1000):0;$('timerHint').classList.toggle('over',elapsed>parseInt(ranges[complexity],10));renderWhy()}
+  const recommendBefore=window.recommend;window.recommend=function(...args){let choices=recommendBefore.apply(this,args);let unique=choices.filter(item=>!usedQids.has(item.q.id));if(!unique.length){usedQids.clear();unique=choices}const usedKps=new Set([...usedQids].map(id=>{const b=bank.find(x=>x.id===id);return b?b.kp:null}).filter(Boolean));let kpFresh=unique.filter(item=>!usedKps.has(item.q.kp));if(kpFresh.length)unique=kpFresh;choices=unique;const queued=replayQueue[0];if(queued){const replay=choices.find(item=>item.q.id===queued)||recommendBefore.apply(this,args).find(item=>item.q.id===queued);if(replay)choices=[replay,...choices.filter(item=>item.q.id!==queued)]}return choices};
+  function renderWhy(){if(!current)return;const weights=['wm','wf','wr'].map(id=>+$(id).value),sum=weights.reduce((a,b)=>a+b,0)||1,percent=weights.map(v=>Math.round(v/sum*100)),history=records.filter(row=>row.kp===current.kp&&!row.replay),correct=history.filter(row=>row.correct).length,wrong=history.length-correct,days=history.length?Math.max(0,Math.floor((Date.now()-history.at(-1).at)/86400000)):null,flow=records.length&&records.at(-1).fatigue>=48?'受挫':records.length&&records.at(-1).focus>=88?'状态平稳':'平稳';$('whyContent').innerHTML='<ul class="why-breakdown"><li>知识补弱 '+percent[0]+'%：该知识点 '+correct+' 对 '+wrong+' 错</li><li>心流匹配 '+percent[1]+'%：当前状态'+flow+'，本题计算量 '+current.d.computation_complexity+'/5、逻辑 '+current.d.cognitive_load+'/5</li><li>复习抗遗忘 '+percent[2]+'%：'+(days===null?'该知识点尚无历史记录':days+' 天未练习')+'</li><li>模型判断：掌握度 '+(kpModel[current.kp]?Math.round(kpModel[current.kp].p*100):50)+'% · 能力 θ≈'+Math.round(ability*10)/10+' · 本题难度 '+(current.d.computation_complexity||3)+'/5 · 预测正确率 '+Math.round(1/(1+Math.exp(-(ability-(current.d.computation_complexity||3))))*100)+'%</li></ul>';const mastery=Math.round((correct+2)/(history.length+4)*100);$('masteryBar').style.width=mastery+'%';$('masteryLabel').textContent=current.kp+'掌握度估算 '+mastery+'% · 历史 '+history.length+' 题';const favored=percent.indexOf(Math.max(...percent));$('weightPriority').textContent=['将优先补强较薄弱的知识点','将优先匹配当前作答节奏','将优先安排到期复习'][favored]+'。'}
+  ['wm','wf','wr'].forEach(id=>$(id).addEventListener('input',()=>{renderWhy();saveState()}));$('resetWeights').onclick=()=>{['wm','wf','wr'].forEach((id,i)=>$(id).value=[45,30,25][i]);['wmv','wfv','wrv'].forEach((id,i)=>$(id).textContent=[45,30,25][i]+'%');renderWhy();saveState()};
+  ['wm','wf','wr'].forEach((id,i)=>{const value=+$(id).value;$(['wmv','wfv','wrv'][i]).textContent=value+'%'});
+  function beginQuestion(newRound=false){if(newRound){roundCount=0;sessionStartRecord=records.length;updateProgress()}if(testState==='submitted')activateState('testing');if(testState==='idle'||testState==='submitted')window.question();else if(newRound)window.question();showView('practiceView');saveState()}
+  $('dashboardStart').onclick=()=>beginQuestion(true);$('startTest').onclick=()=>beginQuestion(roundCount===0);$('nextTest').onclick=()=>beginQuestion(true);
+  // ==== 连击 / 自动切题 / 庆祝 / 强制休息 ====
+  let correctStreak=0,transitioning=false,celebrationOpen=false,forcedRestActive=false,autoNextTimer=0,forcedRestEndAt=0,forcedRestTimer=0,audioCtx=null;
+  let soundEnabled=true;try{soundEnabled=localStorage.getItem('lyd-sound-enabled')!=='false'}catch{}
+  function ensureAudioContext(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume()}catch{}}
+  function playCelebrationSound(){if(!soundEnabled)return;try{ensureAudioContext();const t=audioCtx.currentTime;const tone=(f,st,d)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.16,st+.03);g.gain.exponentialRampToValueAtTime(.001,st+d);o.connect(g);g.connect(audioCtx.destination);o.start(st);o.stop(st+d+.02)};tone(660,t,.16);tone(880,t+.16,.18)}catch{}}
+  function syncCelebrationSoundButton(){const b=$('celebrationSound');if(b)b.textContent=soundEnabled?'提示音：开':'提示音：关'}
+  function autoNext(){if(transitioning||celebrationOpen||forcedRestActive||sim)return;clearTimeout(autoNextTimer);transitioning=true;$('submit').textContent='即将进入下一题…';$('submit').disabled=true;const bar=$('autoNextBar');if(bar){bar.style.transition='none';bar.style.width='0%';void bar.offsetWidth;bar.style.transition='width .45s linear';bar.style.width='100%'}autoNextTimer=setTimeout(()=>{const tv=$('testingView');tv.classList.add('q-leaving');const wipe=$('questionWipe');if(wipe)wipe.classList.add('run');setTimeout(()=>{window.question();tv.classList.remove('q-leaving');tv.classList.add('q-entering');if(wipe)wipe.classList.remove('run');if(bar)bar.style.width='0%';setTimeout(()=>{tv.classList.remove('q-entering');transitioning=false},300)},220)},450)}
+  function openCelebration(){if(celebrationOpen||forcedRestActive||transitioning)return;clearTimeout(autoNextTimer);celebrationOpen=true;autoNextTimer=setTimeout(()=>{if(!celebrationOpen)return;const rows=records.slice(sessionStartRecord).filter(x=>!x.replay),c=rows.filter(x=>x.correct).length;$('celebrationStats').textContent='本轮已答 '+rows.length+' 题 · 正确率 '+(rows.length?Math.round(c/rows.length*100):0)+'%';$('streakCelebration').hidden=false;document.body.classList.add('modal-locked');$('celebrationTitle').focus();playCelebrationSound()},350)}
+  function closeCelebration(){if(!celebrationOpen)return;celebrationOpen=false;clearTimeout(autoNextTimer);$('streakCelebration').hidden=true;document.body.classList.remove('modal-locked');correctStreak=0;if(!replaying&&roundCount>=roundGoal){}else{autoNext()}}
+  function openForcedRest(){if(forcedRestActive||celebrationOpen||transitioning)return;clearTimeout(autoNextTimer);forcedRestActive=true;forcedRestEndAt=Date.now()+15000;$('forcedRest').hidden=false;$('forcedRest').setAttribute('aria-label','连续答错 6 题，休息 15 秒');document.body.classList.add('modal-locked');$('forcedRestTitle').focus();tickForcedRest();forcedRestTimer=setInterval(tickForcedRest,1000)}
+  function tickForcedRest(){const left=Math.max(0,Math.ceil((forcedRestEndAt-Date.now())/1000));$('forcedRestCount').textContent=left;const pct=Math.max(0,Math.min(100,(15000-(forcedRestEndAt-Date.now()))/15000*100));const bar=$('forcedRestBar');if(bar)bar.style.width=pct+'%';if(Date.now()>=forcedRestEndAt)closeForcedRest()}
+  function closeForcedRest(){if(!forcedRestActive)return;forcedRestActive=false;clearInterval(forcedRestTimer);$('forcedRest').hidden=true;document.body.classList.remove('modal-locked');streak=0;$('submit').disabled=false;$('nextTest').disabled=false;const wh=$('wrongHint');if(wh)wh.hidden=false;$('reviewHeading').focus()}
+  function cleanupAutoNext(){clearTimeout(autoNextTimer);autoNextTimer=0;transitioning=false;celebrationOpen=false;armedIndex=-1;hideTapHint();if(forcedRestActive){clearInterval(forcedRestTimer);forcedRestActive=false;$('forcedRest').hidden=true}$('streakCelebration').hidden=true;document.body.classList.remove('modal-locked');const tv=$('testingView');if(tv)tv.classList.remove('q-leaving','q-entering');const bar=$('autoNextBar');if(bar)bar.style.width='0%'}
+  $('celebrationContinue').onclick=closeCelebration;
+  $('celebrationSound').onclick=()=>{soundEnabled=!soundEnabled;try{localStorage.setItem('lyd-sound-enabled',String(soundEnabled))}catch{}syncCelebrationSoundButton()};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(forcedRestActive){e.preventDefault();return}if(celebrationOpen){e.preventDefault();closeCelebration()}}});
+  syncCelebrationSoundButton();
+  // ==== 单击选中 / 再点同项提交 ====
+  let armedIndex=-1;
+  function showTapHint(index){const h=$('tapHint');if(h){h.textContent='已选中 '+String.fromCharCode(65+index)+' · 再点一次相同选项提交';h.hidden=false}}
+  function hideTapHint(){const h=$('tapHint');if(h)h.hidden=true}
+  function resetTapState(){armedIndex=-1;hideTapHint();const nq=$('nextQuestion');if(nq)nq.hidden=true}
+  function selectChoice(index,button,fromKeyboard){
+    if(submitted||paused||transitioning||celebrationOpen||forcedRestActive)return;
+    const isSecond=selected===index&&armedIndex===index;
+    if(isSecond){hideTapHint();[...$('choices').children].forEach(el=>el.classList.remove('is-armed'));const sb=$('submit');sb.disabled=false;sb.click();return}
+    if(selected!==-1&&selected!==index)changes++;
+    selected=index;armedIndex=index;
+    [...$('choices').children].forEach((el,j)=>{el.classList.toggle('selected',j===index);el.setAttribute('aria-pressed',String(j===index));el.classList.toggle('is-armed',j===index)});
+    if(button){button.classList.remove('tap-pulse');void button.offsetWidth;button.classList.add('tap-pulse')}
+    showTapHint(index);$('submit').disabled=true;lastActivity=Date.now();updateQuestionChrome();
+  }
+  window.selectChoice=selectChoice;window.resetTapState=resetTapState;
+  $('nextQuestion').onclick=()=>{if(transitioning||celebrationOpen||forcedRestActive)return;$('submit').click()};
+  const submitBefore=$('submit').onclick;$('submit').onclick=function(){if(submitted){if(transitioning||celebrationOpen||forcedRestActive)return;if(roundCount>=roundGoal)beginQuestion(true);else window.question();return}if(selected<0||paused||sim)return;ensureAudioContext();submitBefore.call(this);const row=records.at(-1);if(!row)return;const ok=row.correct;if(ok){correctStreak++}else{correctStreak=0}$('reviewExplanation').textContent=current.e;$('reviewMeta').textContent='用时 '+row.seconds.toFixed(1)+' 秒 · 修改 '+changes+' 次';const prior=answerFeedback[current.id];[['feedbackUnderstood','understood'],['feedbackUnclear','unclear']].forEach(([id,value])=>{const button=$(id),active=prior===value;button.dataset.value=value;button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active))});$('reviewHeading').focus({preventScroll:true});renderWhy();const roundDone=!replaying&&roundCount>=roundGoal;if(roundDone){window.targetKp=null;const rows=records.slice(sessionStartRecord).filter(item=>!item.replay),correct=rows.filter(item=>item.correct).length,average=rows.reduce((sum,item)=>sum+item.seconds,0)/(rows.length||1),first=rows[0],last=rows.at(-1);showEndAnimation(rows,correct,average,last);$('resultTitle').textContent='本轮完成';$('resultText').textContent='完成 '+rows.length+' 题 · 正确率 '+Math.round(correct/(rows.length||1)*100)+'% · 平均用时 '+average.toFixed(1)+' 秒。';$('submittedView').classList.add('open');$('testingView').classList.add('hidden');const summary=document.createElement('div');summary.className='round-summary';summary.innerHTML='<strong>学习节奏小结</strong><p>专注趋势 '+(last?.focus??'—')+' · 疲劳趋势 '+(last?.fatigue??'—')+'</p><p>'+(last&&first?(last.focus>=first.focus?'专注趋势有所回升':'专注趋势略有变化')+'，可以按自己的节奏继续。':'保持适合你的节奏。')+'</p>';const old=$('roundSummary');if(old)old.remove();$('nextTest').textContent='再练一轮 →';$('submittedView').insertBefore(summary,$('nextTest'));}else{$('submittedView').classList.remove('open');$('testingView').classList.remove('hidden')}saveState();if(!ok){if(!roundDone)$('nextQuestion').hidden=false;const wh=$('wrongHint');if(wh)wh.hidden=false;if(streak>=6){openForcedRest()}}else{if(correctStreak>=5){openCelebration()}else if(!roundDone){autoNext()}}};
+  $('feedbackUnderstood').onclick=()=>storeAnswerFeedback('understood');$('feedbackUnclear').onclick=()=>storeAnswerFeedback('unclear');function storeAnswerFeedback(value){if(!current)return;answerFeedback[current.id]=value;try{localStorage.setItem(feedbackKey,JSON.stringify(answerFeedback))}catch{};[$('feedbackUnderstood'),$('feedbackUnclear')].forEach(button=>{const active=button.dataset.value===value;button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active))});toast(value==='understood'?'已记录：这题帮你理解了':'已记录：这题还需要再梳理');renderWhy()}
+  function renderHistory(){renderEvents()}
+  $('chart').parentElement.classList.add('chart-wrap');const chartWrap=$('chart').parentElement;chartWrap.append($('chartTooltip'));const chartTooltip=$('chartTooltip');
+  function drawChart(){const canvas=$('chart'),width=canvas.clientWidth||canvas.getBoundingClientRect().width,height=230,dpr=devicePixelRatio||1;if(!width)return;canvas.width=width*dpr;canvas.height=height*dpr;const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);const rows=showAll?records:records.slice(-15),left=36,right=width-14,top=18,bottom=height-28,xAt=i=>left+i*(right-left)/Math.max(1,rows.length-1),yAt=v=>bottom-v/100*(bottom-top);ctx.clearRect(0,0,width,height);ctx.font='11px Segoe UI';[0,25,50,75,100].forEach(value=>{const y=yAt(value);ctx.strokeStyle='#edf0eb';ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillStyle='#5f736c';ctx.fillText(String(value),3,y+4)});if(rows.length&&rows.some(row=>row.fatigue>60)){ctx.fillStyle='#c39b6112';ctx.fillRect(left,yAt(60),right-left,bottom-yAt(60))}if(rows.length&&rows.some(row=>row.focus<60)){ctx.fillStyle='#75867e0b';ctx.fillRect(left,top,right-left,yAt(60)-top)}if(selectedChartIndex>=0&&selectedChartIndex<rows.length){ctx.strokeStyle='rgba(20,61,54,.12)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xAt(selectedChartIndex),top);ctx.lineTo(xAt(selectedChartIndex),bottom);ctx.stroke()}const keys=['focus','fatigue','accuracy'],colors=['#37886c','#c39b61','#8999c3'];keys.forEach((key,k)=>{const values=rows.map(row=>row[key]),smooth=window.adaptiveSplineFit?adaptiveSplineFit(values):values;const falloff=d=>Math.exp(-(d*d)/2),segA=i=>{if(chartDotMode!=='hide')return 1;if(hoverIndex<0)return 0;return falloff(Math.abs(i-hoverIndex))};ctx.strokeStyle=colors[k];ctx.lineWidth=1;ctx.lineCap='round';for(let i=0;i<values.length-1;i++){const a=segA(i);if(a<.02)continue;ctx.globalAlpha=a;ctx.beginPath();ctx.moveTo(xAt(i),yAt(values[i]));ctx.lineTo(xAt(i+1),yAt(values[i+1]));ctx.stroke()}ctx.globalAlpha=1;values.forEach((value,i)=>{let alpha=1,radius=selectedChartIndex===i?5:3,dot=true;if(chartDotMode==='hide'){if(hoverIndex<0){dot=false}else{const d=Math.abs(i-hoverIndex);alpha=falloff(d);if(alpha<.02){dot=false}else if(d===0){radius=4.5}}}if(!dot)return;ctx.globalAlpha=alpha;ctx.beginPath();ctx.arc(xAt(i),yAt(value),radius,0,Math.PI*2);ctx.fillStyle=colors[k];ctx.fill();ctx.globalAlpha=1;if(rows[i].source==='模拟'){ctx.beginPath();ctx.arc(xAt(i),yAt(value),6,0,Math.PI*2);ctx.strokeStyle='#b47b32';ctx.stroke()}});ctx.strokeStyle=colors[k];ctx.lineWidth=2.5;ctx.beginPath();smooth.forEach((value,i)=>i?ctx.lineTo(xAt(i),yAt(value)):ctx.moveTo(xAt(i),yAt(value)));ctx.stroke()});ctx.fillStyle='#5f736c';const rawStep=Math.max(1,Math.ceil(44/Math.max(1,(right-left)/Math.max(1,rows.length-1)))),labelStep=[1,2,5,10,20,50,100,200].find(s=>s>=rawStep)||200;rows.forEach((row,i)=>{if(i%labelStep===0||i===rows.length-1)ctx.fillText(String(row.n),xAt(i)-3,height-7)});const tooltipAt=(index,event)=>{if(index<0||index>=rows.length)return;selectedChartIndex=index;const row=rows[index];chartTooltip.innerHTML='第 '+row.n+' 题'+(row.source==='模拟'?' · 演示':'')+'<br>专注 '+row.focus+' · 疲劳 '+row.fatigue+'<br>正确率 '+row.accuracy+'% · 用时 '+row.seconds+' 秒';chartTooltip.style.display='block';const rect=canvas.getBoundingClientRect(),wrap=chartWrap.getBoundingClientRect(),px=xAt(index),py=yAt(row.focus);let tipX=px+120;if(tipX+180>rect.width)tipX=px-120-180;chartTooltip.style.left=Math.max(0,tipX)+'px';chartTooltip.style.top=Math.max(0,Math.min(height-74,py-46))+'px';drawChart();chartTooltip.style.display='block'};canvas.onpointermove=event=>{const rect=canvas.getBoundingClientRect();if(!rows.length)return;const x=event.clientX-rect.left;const index=Math.max(0,Math.min(rows.length-1,Math.round((x-left)/Math.max(1,right-left)*Math.max(1,rows.length-1))));hoverIndex=index;tooltipAt(index,event)};canvas.onclick=event=>{const rect=canvas.getBoundingClientRect(),x=event.clientX-rect.left,index=Math.max(0,Math.min(rows.length-1,Math.round((x-left)/Math.max(1,right-left)*Math.max(1,rows.length-1))));if(rows.length)tooltipAt(index,event)};canvas.onpointerleave=()=>{if(matchMedia('(hover: hover)').matches){chartTooltip.style.display='none';selectedChartIndex=-1;hoverIndex=-1;drawChart()}};const table=$('chartTable');table.replaceChildren();rows.forEach(row=>{const tr=document.createElement('tr');[row.n,row.focus,row.fatigue,row.accuracy+'%'].forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.append(td)});table.append(tr)})}
+  window.draw=drawChart;window.addEventListener('resize',drawChart);if(window.ResizeObserver)new ResizeObserver(drawChart).observe(chartWrap);$('showRecent').onclick=()=>{showAll=false;$('showRecent').setAttribute('aria-pressed','true');$('showAll').setAttribute('aria-pressed','false');drawChart()};$('showAll').onclick=()=>{showAll=true;$('showAll').setAttribute('aria-pressed','true');$('showRecent').setAttribute('aria-pressed','false');drawChart()};$('toggleChartTable').onclick=()=>{const open=$('chartTableWrap').hidden;$('chartTableWrap').hidden=!open;$('toggleChartTable').setAttribute('aria-expanded',String(open))};$('toggleDotMode').onclick=()=>{chartDotMode=chartDotMode==='show'?'hide':'show';const hide=chartDotMode==='hide';$('toggleDotMode').setAttribute('aria-pressed',String(hide));$('toggleDotMode').textContent=hide?'显示点':'隐藏点';drawChart()};$('returnReal').onclick=()=>window.reset(false);
+  document.addEventListener('visibilitychange',()=>{if(testState!=='testing'||submitted||sim||!current||window.restTimerActive?.())return;if(document.hidden){if(!paused){activePause='visibility';pauseStartedAt=Date.now();paused=true;$('pauseOverlay').hidden=false;$('pauseTest').textContent='继续';$('submit').disabled=true}}else if(activePause==='visibility'){resumeTimer(false);toast('离开页面期间不计时 · 已离开 '+away+' 次')}});
+  function pauseTimer(mode='manual'){if(testState!=='testing'||submitted||sim||paused)return;paused=true;activePause=mode;pauseStartedAt=Date.now();$('pauseOverlay').hidden=false;$('pauseTest').textContent='继续';$('submit').disabled=true;document.body.classList.add('pause-locked');if(mode==='manual')requestAnimationFrame(()=>$('resumeTest').focus({preventScroll:true}));lastActivity=Date.now()}
+  function resumeTimer(notify=false){if(!paused||!activePause)return;const elapsed=Date.now()-pauseStartedAt;started+=elapsed;paused=false;activePause='';$('pauseOverlay').hidden=true;document.body.classList.remove('pause-locked');$('pauseTest').textContent='暂停';$('submit').disabled=selected<0||submitted;$('pauseTest').focus({preventScroll:true});lastActivity=Date.now();if(notify)toast('计时已恢复')}
+  $('pauseTest').onclick=()=>paused?resumeTimer(true):pauseTimer('manual');$('resumeTest').onclick=()=>resumeTimer(true);
+  document.addEventListener('pointerdown',()=>{lastActivity=Date.now()},{passive:true});document.addEventListener('keydown',event=>{if(event.key==='Escape'){if(activePause==='manual'){resumeTimer(true);return}if(window.restTimerActive?.()){window.finishCoachRest?.()}else{closeCoach()}return}if(testState!=='testing'||submitted||sim||event.altKey||event.ctrlKey||event.metaKey)return;lastActivity=Date.now();const active=document.activeElement;if(['INPUT','TEXTAREA','SELECT'].includes(active?.tagName))return;const choices=[...$('choices').children],idx=choices.indexOf(active),key=event.key.toLowerCase();if(/^[1-4]$/.test(key)||/^[a-d]$/.test(key)){const n=/^[1-4]$/.test(key)?Number(key)-1:key.charCodeAt(0)-97;if(choices[n]){event.preventDefault();selectChoice(n,choices[n],true);choices[n].focus()}}else if(key==='arrowright'||key==='arrowleft'){if(choices.length){event.preventDefault();choices[(idx+(key==='arrowright'?1:-1)+choices.length)%choices.length].focus()}}else if((key==='enter'||key===' ')&&active.classList.contains('choice')){event.preventDefault();if(idx>=0)selectChoice(idx,active,true)}});
+  $('qtext').setAttribute('tabindex','-1');document.addEventListener('keydown',event=>{if(event.key==='Escape'&&activePause==='manual')resumeTimer(true)});
+  setInterval(()=>{if(testState==='testing'&&!submitted&&!paused&&current){const seconds=Math.max(0,Math.floor((Date.now()-started)/1000)),complexity=current.d.computation_complexity||2,limits={1:120,2:120,3:150,4:180,5:240};$('timer').textContent='用时 '+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');$('timerHint').classList.toggle('over',seconds>limits[complexity]);if(Date.now()-lastActivity>120000)pauseTimer('idle')}} ,1000);
+  const routeMap={dashboardView:'#/dashboard',practiceView:'#/practice',trendsView:'#/trends',recordsView:'#/records',leaderboardView:'#/leaderboard',logicView:'#/logic'},viewMap={'#/dashboard':'dashboardView','#/practice':'practiceView','#/trends':'trendsView','#/records':'recordsView','#/leaderboard':'leaderboardView','#/logic':'logicView'},showViewBefore=window.showView;window.showView=function(id){if(routeMap[id]&&location.hash!==routeMap[id])location.hash=routeMap[id];if(id!=='practiceView')cleanupAutoNext();showViewBefore(id)};window.addEventListener('hashchange',()=>{const view=viewMap[location.hash]||'dashboardView';showViewBefore(view)});if(!viewMap[location.hash])history.replaceState(null,'','#/dashboard');else showViewBefore(viewMap[location.hash]);
+  const baseSim=$('simulate').onclick;$('simulate').onclick=function(...args){$('returnReal').hidden=false;$('demoBadge').hidden=false;$('showAll').hidden=false;return baseSim.apply(this,args)};const simCheck=setInterval(()=>{if(simTimer&&!sim){$('returnReal').hidden=false;$('demoBadge').hidden=false;$('mode').textContent='● 模拟数据演示';clearInterval(simCheck)}},400);
+  function showStartAnimation(cb){const ov=$('startOverlay'),num=$('startCount');if(!ov||!num){cb&&cb();return}ov.hidden=false;ov.classList.remove('fading');const set=n=>{num.textContent=n;num.classList.remove('pop');void num.offsetWidth;num.classList.add('pop')};set('3');setTimeout(()=>set('2'),400);setTimeout(()=>set('1'),800);setTimeout(()=>{ov.classList.add('fading');setTimeout(()=>{ov.hidden=true;ov.classList.remove('fading');cb&&cb()},320)},1200)}
+function showEndAnimation(rows,correct,average,last){const ov=$('endOverlay'),arc=$('endArc'),acc=$('endAccuracy'),stats=$('endStats'),grade=$('endGrade');if(!ov)return;const pct=rows.length?Math.round(correct/rows.length*100):0;const gr=pct>=90?['S','#F5C542']:pct>=75?['A','#8AD6B6']:pct>=60?['B','#7C9DB5']:pct>=40?['C','#D98E63']:['D','#B65C4A'];ov.hidden=false;ov.classList.remove('fading');acc.textContent='0%';if(grade){grade.textContent=gr[0];grade.style.color=gr[1];grade.style.textShadow='0 0 28px '+gr[1]+'AA, 0 0 10px '+gr[1]}arc.style.stroke=gr[1];stats.innerHTML='<span>完成 <b>'+rows.length+'</b> 题</span><span>平均用时 <b>'+average.toFixed(1)+'</b> 秒</span><span>专注趋势 <b>'+(last?.focus??'—')+'</b></span><span>疲劳趋势 <b>'+(last?.fatigue??'—')+'</b></span>';requestAnimationFrame(()=>requestAnimationFrame(()=>{arc.style.strokeDashoffset=100-pct}));const t0=performance.now(),dur=1200;(function tick(t){const k=Math.min(1,(t-t0)/dur);acc.textContent=Math.round(pct*k)+'%';if(k<1)requestAnimationFrame(tick)})(t0);setTimeout(()=>{ov.classList.add('fading');setTimeout(()=>{ov.hidden=true;ov.classList.remove('fading')},360)},3000)}
+function startRound(){roundCount=0;sessionStartRecord=records.length;updateProgress();showView('practiceView');if(!sim){activateState('idle');showStartAnimation(()=>question())}}
+  $('dashboardStart').onclick=startRound;$('startTest').onclick=()=>{if(testState==='idle')startRound();else beginQuestion(false)};$('nextTest').onclick=startRound;
+  window.startKpTraining=function(kp){window.targetKp=kp;startRound();toast('开始题组训练：'+kp+'（含其前置子树）')};
+  const baseResetClick=$('reset').onclick;$('reset').onclick=()=>window.reset(false);
+  function updateEventsWhenReady(){$('versionTag').textContent='v'+VERSION;$('chartHint').hidden=records.length>0;if(!records.length)$('chartHint').textContent='完成第一道题，开始记录你的学习节奏';renderEvents();updateProgress();renderWhy();drawChart();updateQuestionChrome();saveState();const r=records.at(-1);['focus','fatigue','accuracy'].forEach(k=>{$(k).innerHTML=r?(r[k]+' <small>'+(k==='accuracy'?'%':'/ 100')+'</small>'):'';$(k+'Bar').style.width=(r?r[k]:0)+'%'});$('stats').textContent='已完成 '+records.length+' 题 · 累计修改 '+records.reduce((s,x)=>s+x.changes,0)+' 次';$('metricEmpty').hidden=records.length>0;updateRhythmPanel();renderModelCheck()}
+  window.refreshAll=updateEventsWhenReady;
+  window.addEventListener('load',updateEventsWhenReady,{once:true});
+  updateEventsWhenReady();
+})();
+</script><script>
+/* 休息小游戏：圆球跑酷。碰撞体积 + 8 级关卡 + 3 条命 + 本局结束。暴露 window.RestGame。 */
+(function(){
+  const canvas=$('restGame'),wrap=$('coachGame'),scoreEl=$('gameScore');
+  if(!canvas||!wrap||!scoreEl)return;
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  const reduced=matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const GRAVITY=2000,JUMP=-560,BALL_R=9,BALL_X=64,FLASH=180;
+  const TYPES={
+    low:{w:18,boxes:[{dx:0,w:18,h:[22,30]}]},
+    tall:{w:20,boxes:[{dx:0,w:20,h:[38,50]}]},
+    wide:{w:42,boxes:[{dx:0,w:42,h:[22,28]}]},
+    double:{w:38,boxes:[{dx:0,w:14,h:[24,32]},{dx:24,w:14,h:[24,32]}]},
+    spike:{w:12,boxes:[{dx:2,w:8,h:[26,26],pad:0}]},
+    moving:{w:18,boxes:[{dx:0,w:18,h:[38,38]}],moving:true}
+  };
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  let running=false,raf=0,last=0,cleared=0,obstacles=[],width=0,height=0,ground=0,dash=0,startT=0;
+  let lives=5,invulnUntil=0,shakeUntil=0,lastType=null,DEBUG=false,lastDuration=0;
+  let ball={x:BALL_X,y:0,vy:0,onGround:true,flash:0};
+  function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath()}
+  function size(){
+    const dpr=window.devicePixelRatio||1,w=canvas.clientWidth,h=canvas.clientHeight;
+    if(!w||!h)return false;
+    if(w!==width||h!==height||canvas.width!==Math.round(w*dpr)){
+      const ratio=width?w/width:1;
+      canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      if(ratio!==1)obstacles.forEach(ob=>ob.x*=ratio);
+      width=w;height=h;ground=h-24;
+      if(ball.onGround)ball.y=ground-BALL_R;
+    }
+    return true;
+  }
+  function pickType(){
+    const pool=['low','tall','wide','double','spike','moving'];
+    const w={low:4,tall:3,wide:2,double:2,spike:2,moving:1};
+    let cand=pool.filter(t=>t!==lastType);
+    if(!cand.length)cand=pool;
+    const total=cand.reduce((s,t)=>s+(w[t]||1),0);
+    let r=Math.random()*total;
+    for(const t of cand){r-=w[t]||1;if(r<=0){lastType=t;return t}}
+    lastType=cand[cand.length-1];return lastType;
+  }
+  function spawn(){
+    const type=pickType(),def=TYPES[type];
+    obstacles.push({x:width+20,type,w:def.w,boxes:def.boxes.map(b=>({...b,h:rnd(b.h[0],b.h[1]),lift:0})),gap:rnd(280,420),hit:false,passed:false,phase:rnd(0,6.28)});
+  }
+  function updateHUD(){
+    $('gameLives').textContent='♥'.repeat(lives)+'♡'.repeat(Math.max(0,5-lives));
+    $('gameLives').setAttribute('aria-label','剩余生命 '+lives);
+    scoreEl.textContent='已躲过 '+cleared+' 个';
+  }
+  function jump(){if(running&&ball.onGround){ball.vy=JUMP;ball.onGround=false}}
+  function endGame(){
+    if(!running)return;
+    lastDuration=Math.max(0,Math.round((performance.now()-startT)/1000));
+    running=false;
+    if(raf){cancelAnimationFrame(raf);raf=0}
+    window.finishCoachRest?.('gameover');
+  }
+  function collide(now){
+    for(const ob of obstacles){
+      if(ob.hit)continue;
+      for(const box of ob.boxes){
+        const pad=box.pad??2;
+        const h=box.h+(box.lift||0);
+        const left=ob.x+box.dx+pad,right=ob.x+box.dx+box.w-pad,top=ground-h,bottom=ground;
+        const nx=Math.max(left,Math.min(ball.x,right)),ny=Math.max(top,Math.min(ball.y,bottom));
+        const dx=ball.x-nx,dy=ball.y-ny;
+        if(dx*dx+dy*dy<=BALL_R*BALL_R){
+          ob.hit=true;
+          if(now>=invulnUntil){
+            lives--;invulnUntil=now+1100;shakeUntil=now+180;ball.flash=now;updateHUD();
+            if(lives<=0){endGame();return}
+          }
+          break;
+        }
+      }
+      if(!running)return;
+    }
+  }
+  function step(dist,now){for(const ob of obstacles)ob.x-=dist;collide(now)}
+  function draw(now){
+    ctx.clearRect(0,0,width,height);
+    ctx.fillStyle='#eef7f0';ctx.fillRect(0,0,width,height);
+    const shaking=now<shakeUntil&&!reduced;
+    ctx.save();
+    if(shaking)ctx.translate((Math.random()*2-1)*2,(Math.random()*2-1)*2);
+    ctx.strokeStyle='#b9d8c7';ctx.lineWidth=2;ctx.setLineDash([8,8]);ctx.lineDashOffset=-(dash%24);
+    ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(width,ground);ctx.stroke();ctx.setLineDash([]);
+    for(const ob of obstacles){
+      ctx.globalAlpha=ob.hit?0.45:1;
+      for(const box of ob.boxes){
+        const h=box.h+(box.lift||0),x=ob.x+box.dx,y=ground-h;
+        if(ob.type==='spike'){
+          ctx.fillStyle='#c39b61';ctx.strokeStyle='#8f6737';ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(x,ground);ctx.lineTo(x+box.w/2,y);ctx.lineTo(x+box.w,ground);ctx.closePath();ctx.fill();ctx.stroke();
+        }else{
+          ctx.fillStyle='#c39b61';ctx.strokeStyle='#8f6737';ctx.lineWidth=1;
+          rr(x,y,box.w,h,4);ctx.fill();ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha=1;
+    const hgt=Math.max(0,ground-BALL_R-ball.y),shadowScale=Math.max(.4,1-hgt/90);
+    ctx.fillStyle='rgba(23,133,104,'+(0.18*shadowScale).toFixed(3)+')';
+    ctx.beginPath();ctx.ellipse(BALL_X,ground,10*shadowScale,3.5*shadowScale,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=ball.flash&&now-ball.flash<FLASH?'#c39b61':'#178568';
+    ctx.beginPath();ctx.arc(BALL_X,ball.y,BALL_R,0,Math.PI*2);ctx.fill();
+    if(now<invulnUntil){ctx.strokeStyle='rgba(217,142,99,.85)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(BALL_X,ball.y,BALL_R+3,0,Math.PI*2);ctx.stroke()}
+    if(!reduced){ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=2;const rot=dash/BALL_R;ctx.beginPath();ctx.arc(BALL_X,ball.y,BALL_R*0.55,rot,rot+Math.PI*0.8);ctx.stroke()}
+    ctx.restore();
+    if(DEBUG){
+      for(const ob of obstacles)for(const box of ob.boxes){
+        const pad=box.pad??2,h=box.h+(box.lift||0);
+        ctx.fillStyle='rgba(255,0,0,.18)';
+        ctx.fillRect(ob.x+box.dx+pad,ground-h,box.w-2*pad,h);
+      }
+      ctx.strokeStyle='rgba(255,0,0,.7)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(BALL_X,ball.y,BALL_R,0,Math.PI*2);ctx.stroke();
+    }
+  }
+  function frame(now){
+    if(!running)return;
+    raf=requestAnimationFrame(frame);
+    if(!last)last=now;
+    const dt=Math.min(32,now-last)/1000;last=now;
+    if(!size())return;
+    let speed=160+((now-startT)/1000)*3.5;
+    if(reduced)speed*=0.85;
+    if(!ball.onGround){ball.vy+=GRAVITY*dt;ball.y+=ball.vy*dt;if(ball.y>=ground-BALL_R){ball.y=ground-BALL_R;ball.vy=0;ball.onGround=true}}
+    for(const ob of obstacles)if(ob.type==='moving')for(const box of ob.boxes)box.lift=6+Math.sin(now/260+ob.phase)*6;
+    dash+=speed*dt;
+    const dist=speed*dt;
+    const steps=dist>8?2:1;
+    for(let s=0;s<steps&&running;s++)step(dist/steps,now);
+    if(!running)return;
+    const lastOb=obstacles[obstacles.length-1];
+    if(!lastOb)spawn();else if(lastOb.x<width-lastOb.gap)spawn();
+    obstacles=obstacles.filter(ob=>ob.x>-60);
+    let scored=false;
+    for(const ob of obstacles){if(!ob.passed&&!ob.hit&&ob.x+ob.w<BALL_X-BALL_R){ob.passed=true;cleared++;scored=true}}
+    if(scored)scoreEl.textContent='已躲过 '+cleared+' 个';
+    draw(now);
+  }
+  function start(){
+    stop();
+    running=true;last=0;
+    lives=5;cleared=0;invulnUntil=0;shakeUntil=0;lastType=null;dash=0;startT=performance.now();lastDuration=0;
+    obstacles=[];
+    wrap.hidden=false;
+    ball={x:BALL_X,y:ground-BALL_R,vy:0,onGround:true,flash:0};
+    updateHUD();size();raf=requestAnimationFrame(frame);
+  }
+  function stop(){
+    if(raf){cancelAnimationFrame(raf);raf=0}
+    if(running)lastDuration=Math.max(0,Math.round((performance.now()-startT)/1000));
+    const c=cleared;running=false;last=0;wrap.hidden=true;return c;
+  }
+  const getScore=()=>cleared;
+  const getDuration=()=>lastDuration;
+  canvas.addEventListener('pointerdown',e=>{if(e.button===0&&e.isPrimary)jump()});
+  document.addEventListener('keydown',e=>{if(!running)return;if(e.code!=='Space'&&e.code!=='ArrowUp')return;if(e.repeat)return;const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;e.preventDefault();jump()});
+  let resizeT=0;const onResize=()=>{clearTimeout(resizeT);resizeT=setTimeout(()=>{if(running)size()},150)};
+  window.addEventListener('resize',onResize);
+  if(window.ResizeObserver)new ResizeObserver(onResize).observe(canvas);
+  window.RestGame={start,stop,getScore,getDuration,
+    get debugHitboxes(){return DEBUG},
+    set debugHitboxes(v){DEBUG=v}
+  };
+})();
+</script><script>
+/* ===== 云端接入：Supabase（用户名+密码，纯 fetch，无 SDK）=====
+   使用前把下方 SUPABASE_URL 填成你的项目地址（Settings→API 的 Project URL）。 */
+(function(){
+  const SUPABASE_URL = 'https://izajwocvopaiaspmzdkj.supabase.co';
+  const SUPABASE_ANON = 'sb_publishable_EHy0306sXMeZOPv3zqy3aQ_wDMfTwKp';
+  const EMAIL_SUFFIX = '@lyd.local';
+  const AUTH_KEY = 'lyd-auth-v1';
+  let session = null;
+  try{ session = JSON.parse(localStorage.getItem(AUTH_KEY)||'null'); }catch{ session = null; }
+  function ready(){ return !!SUPABASE_URL && !!SUPABASE_ANON; }
+
+  async function authFetch(path, body){
+    const r = await fetch(SUPABASE_URL + path, { method:'POST', headers:{ apikey:SUPABASE_ANON, 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+    return r.json();
+  }
+  async function dataFetch(path, method, body){
+    const headers = { apikey:SUPABASE_ANON, 'Content-Type':'application/json', Prefer:'return=representation' };
+    if(session && session.access_token) headers.Authorization = 'Bearer ' + session.access_token;
+    const r = await fetch(SUPABASE_URL + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    if(!r.ok){ let msg='HTTP '+r.status; try{ const j=await r.json(); msg=j.message||j.error_description||msg; }catch{} throw new Error(msg); }
+    return r.json();
+  }
+
+  async function register(username, password){
+    const res = await authFetch('/auth/v1/signup', { email: username.toLowerCase()+EMAIL_SUFFIX, password, data:{ username } });
+    if(res.msg || res.error_description) throw new Error(res.error_description || res.msg || '注册失败');
+    return res;
+  }
+  async function login(username, password){
+    const res = await authFetch('/auth/v1/token?grant_type=password', { email: username.toLowerCase()+EMAIL_SUFFIX, password });
+    if(res.error_description || res.msg) throw new Error(res.error_description || res.msg || '登录失败');
+    session = { access_token:res.access_token, refresh_token:res.refresh_token, username:username, user_id:(res.user||{}).id };
+    try{ localStorage.setItem(AUTH_KEY, JSON.stringify(session)); }catch{}
+    return session;
+  }
+  function logout(){ session = null; try{ localStorage.removeItem(AUTH_KEY); }catch{} updateAuthUI(); toast('已退出登录'); }
+
+  function applyCloudRows(rows){
+    records.length = 0;
+    rows.forEach((a,i)=>{
+      records.push({ n:i+1, qid:a.qid, kp:a.kp||'云端', at:new Date(a.at).getTime(), correct:a.correct, seconds:Number(a.seconds)||0, changes:a.changes||0, away:a.away||0, focus:a.focus, fatigue:a.fatigue, accuracy:a.accuracy, source:a.source||'云端', question:a.question });
+    });
+    if(window.refreshAll) window.refreshAll();
+  }
+  async function pushAttempt(rec){
+    if(!session) return;
+    await dataFetch('/rest/v1/attempts', 'POST', {
+      user_id:session.user_id, qid:rec.qid, kp:rec.kp, question:rec.question, correct:rec.correct,
+      seconds:rec.seconds, changes:rec.changes||0, away:rec.away||0, focus:rec.focus, fatigue:rec.fatigue, accuracy:rec.accuracy, score:rec.score||0, source:rec.source||'云端'
+    });
+  }
+  async function pullRecords(){
+    if(!session) return;
+    try{
+      let rows = await dataFetch('/rest/v1/attempts?select=*&order=at.asc', 'GET');
+      if(!rows.length && records.length){ for(const rec of records){ try{ await pushAttempt(rec); }catch{} } rows = await dataFetch('/rest/v1/attempts?select=*&order=at.asc', 'GET'); }
+      applyCloudRows(rows);
+      toast('云端记录已同步');
+    }catch(e){ toast('同步失败：'+(e.message||'网络错误')); }
+  }
+
+  async function loadQuestions(){
+    if(!ready()) return;
+    try{
+      const rows = await dataFetch('/rest/v1/questions?select=*', 'GET');
+      let added = 0;
+      rows.forEach(q=>{
+        if(q.type !== '选择题') return;
+        const opts = Array.isArray(q.options) ? q.options : [];
+        const k = opts.indexOf(q.answer);
+        if(k < 0) return;
+        if(bank.some(b=>b.id==='q'+q.id)) return;
+        bank.push({ id:'q'+q.id, kp:q.knowledge_point||'综合', d:{ computation_complexity:q.difficulty||2, cognitive_load:Math.min(5,(q.difficulty||2)+1), trap_level:Math.max(1,(q.difficulty||2)-1), reading_length:(q.question||'').length }, q:q.question, a:opts, k, e:q.analysis||'' });
+        added++;
+      });
+      if(added) toast('已接入云端真题 '+added+' 道');
+    }catch(e){ /* 离线时静默，保留本地题库 */ }
+  }
+
+  // 每次作答同步云端
+  const baseAdd = window.add;
+  window.add = function(...args){
+    const len = records.length;
+    const res = baseAdd.apply(this, args);
+    if(records.length > len && session) pushAttempt(records.at(-1)).catch(()=>{});
+    return res;
+  };
+  window.pushGameSession=async function(seconds){if(!session||!seconds)return;try{await dataFetch('/rest/v1/game_sessions','POST',{user_id:session.user_id,seconds})}catch{}};
+  window.fetchLeaderboard=async function(kind){return dataFetch('/rest/v1/rpc/leaderboard','POST',{kind})};
+  window.getUsername=()=>session?session.username:null;window.clearCloudRecords=async function(){if(!session)return;try{await dataFetch('/rest/v1/attempts?user_id=eq.'+session.user_id,'DELETE');await dataFetch('/rest/v1/game_sessions?user_id=eq.'+session.user_id,'DELETE')}catch{}};
+
+  // ---- UI ----
+  function updateAuthUI(){ const b=$('authButton'); if(b){ b.textContent = session ? '☁ '+session.username : '登录 / 注册'; const h=$('authHint'); if(h) h.textContent = session ? '云端同步已开启' : '未登录 · 数据只存本机'; } }
+  function openAuthModal(){ if(!ready()){ toast('尚未配置云端（缺项目 URL）'); return; } $('authModal').hidden=false; $('authUsername').focus(); }
+
+  function buildUI(){
+    const aside = document.querySelector('aside');
+    const area = document.createElement('div'); area.className='auth-area';
+    area.innerHTML = '<button class="btn secondary auth-btn" id="authButton" type="button">登录 / 注册</button><span class="auth-hint" id="authHint">未登录 · 数据只存本机</span>';
+    aside.querySelector('nav').after(area);
+    $('authButton').onclick = openAuthModal;
+
+    const modal = document.createElement('div'); modal.className='auth-backdrop'; modal.id='authModal'; modal.hidden=true;
+    modal.innerHTML = '<div class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="authTitle"><button class="coach-close" id="authClose" type="button" aria-label="关闭">×</button><h3 id="authTitle">登录学有度</h3><p class="auth-sub">注册后，作答记录会同步到云端。</p><label>用户名<input id="authUsername" type="text" autocomplete="username" placeholder="3–20 位字母或数字"></label><label>密码<input id="authPassword" type="password" autocomplete="current-password" placeholder="至少 6 位"></label><div class="auth-err" id="authError" role="alert"></div><div class="auth-actions"><button class="btn" id="authSubmit" type="button">登录</button><button class="btn secondary" id="authToggleMode" type="button">没有账号？注册</button><button class="btn secondary" id="authLogout" type="button" hidden>退出登录</button></div></div>';
+    document.body.append(modal);
+
+    let mode = 'login';
+    function syncMode(){ $('authTitle').textContent = mode==='login'?'登录学有度':'注册学有度'; $('authSubmit').textContent = mode==='login'?'登录':'注册'; $('authToggleMode').textContent = mode==='login'?'没有账号？注册':'已有账号？登录'; $('authLogout').hidden = !(mode==='login' && session); }
+    $('authClose').onclick = ()=>{ modal.hidden=true; };
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.hidden=true; });
+    $('authToggleMode').onclick = ()=>{ mode = mode==='login'?'register':'login'; $('authError').textContent=''; syncMode(); };
+    $('authLogout').onclick = ()=>{ modal.hidden=true; logout(); };
+    $('authSubmit').onclick = async ()=>{
+      const u = $('authUsername').value.trim(), p = $('authPassword').value;
+      $('authError').textContent='';
+      if(!/^[a-zA-Z0-9_]{3,20}$/.test(u)){ $('authError').textContent='用户名需 3–20 位字母/数字/下划线'; return; }
+      if(p.length<6){ $('authError').textContent='密码至少 6 位'; return; }
+      $('authSubmit').disabled = true;
+      try{
+        if(mode==='login'){ await login(u,p); } else { await register(u,p); await login(u,p); }
+        modal.hidden = true;
+        updateAuthUI(); syncMode();
+        toast('已登录：'+u);
+        pullRecords();
+      }catch(e){ $('authError').textContent = e.message || '操作失败，请重试'; }
+      finally{ $('authSubmit').disabled = false; }
+    };
+    syncMode();
+  }
+
+  buildUI();
+  updateAuthUI();
+  loadQuestions();
+})();
+</script><script>
+/* 鼠标交互升级：侧边栏光斑 / 导航胶囊 / 入口卡片倾斜（仅精细指针设备，非减少动效） */
+(function(){
+  const fine=matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches;
+  const reduced=matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!fine||reduced)return;
+
+  // 1) 侧边栏跟随光斑
+  const aside=document.querySelector('aside');
+  if(aside){
+    let raf=0;
+    aside.addEventListener('pointermove',e=>{
+      if(raf)return;
+      raf=requestAnimationFrame(()=>{
+        const r=aside.getBoundingClientRect();
+        aside.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+        aside.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+        raf=0;
+      });
+    });
+  }
+
+  // 2) 导航胶囊
+  const nav=document.querySelector('aside nav');
+  const pill=nav?nav.querySelector('.nav-pill'):null;
+  if(nav&&pill){
+    const buttons=[...nav.querySelectorAll('button')];
+    const activeBtn=()=>nav.querySelector('button.active');
+    function movePill(btn){
+      if(!btn){pill.classList.remove('is-visible');return}
+      pill.style.transform='translateY('+btn.offsetTop+'px)';
+      pill.style.height=btn.offsetHeight+'px';
+      pill.classList.add('is-visible');
+    }
+    requestAnimationFrame(()=>movePill(activeBtn()));
+    buttons.forEach(btn=>{
+      btn.addEventListener('pointerenter',()=>movePill(btn));
+      btn.addEventListener('pointerleave',()=>movePill(activeBtn()));
+      btn.addEventListener('focus',()=>movePill(btn));
+      btn.addEventListener('blur',()=>movePill(activeBtn()));
+    });
+    nav.addEventListener('click',()=>requestAnimationFrame(()=>movePill(activeBtn())));
+    window.addEventListener('resize',()=>requestAnimationFrame(()=>movePill(activeBtn())));
+  }
+
+  // 3) 入口卡片 3D 倾斜 + 聚光
+  document.querySelectorAll('.module-link').forEach(card=>{
+    let raf=0;
+    card.addEventListener('pointermove',e=>{
+      if(raf)return;
+      raf=requestAnimationFrame(()=>{
+        const r=card.getBoundingClientRect();
+        const px=(e.clientX-r.left)/r.width,py=(e.clientY-r.top)/r.height;
+        card.style.setProperty('--mx',(px*100)+'%');
+        card.style.setProperty('--my',(py*100)+'%');
+        card.style.setProperty('--ry',((px-.5)*4)+'deg');
+        card.style.setProperty('--rx',((.5-py)*4)+'deg');
+        card.style.setProperty('--lift','-2px');
+        raf=0;
+      });
+    });
+    card.addEventListener('pointerleave',()=>{
+      card.style.setProperty('--rx','0deg');
+      card.style.setProperty('--ry','0deg');
+      card.style.setProperty('--lift','0px');
+    });
+  });
+})();
+</script><script>
+/* 排行榜：积分 / 正确率 / 游戏时长 */
+(function(){
+  const list=$('leaderboardList'),myRank=$('myRank');
+  const tabs=[...document.querySelectorAll('#leaderboardView .record-tab')];
+  let lbKind='points';
+  function fmtVal(row){
+    if(lbKind==='accuracy')return row.accuracy+'%';
+    if(lbKind==='game')return row.game_seconds+' 秒';
+    return row.points+' 分';
+  }
+  function render(rows){
+    list.replaceChildren();
+    const myName=window.getUsername?window.getUsername():null;
+    rows.slice(0,10).forEach(r=>{
+      const li=document.createElement('li');
+      const me=myName&&r.username===myName;
+      if(me)li.className='lb-me';
+      const rank=document.createElement('span');rank.className='lb-rank';rank.textContent=r.rank;
+      const name=document.createElement('span');name.className='lb-name';name.textContent=r.username+(me?'（我）':'');
+      const val=document.createElement('span');val.className='lb-val';val.textContent=fmtVal(r);
+      li.append(rank,name,val);list.append(li);
+    });
+    const me=myName?rows.find(r=>r.username===myName):null;
+    if(me){myRank.textContent='我的排名：第 '+me.rank+' 名 · '+fmtVal(me);}
+    else if(myName){myRank.textContent='我的排名：暂未上榜 · 先刷题/玩小游戏吧';}
+    else{myRank.textContent='未登录 · 登录后可看自己的排名';}
+  }
+  async function load(){
+    try{const rows=await (window.fetchLeaderboard?window.fetchLeaderboard(lbKind):[]);render(Array.isArray(rows)?rows:[]);}
+    catch(e){render([]);myRank.textContent='排行榜加载失败 · 请确认已运行「学有度-排行榜.sql」';}
+  }
+  tabs.forEach(t=>t.onclick=()=>{lbKind=t.dataset.lbKind;tabs.forEach(x=>x.setAttribute('aria-selected',x===t?'true':'false'));load()});
+  window.loadLeaderboard=load;
+  load();
+})();
+</script><script>
+/* 逻辑链：知识点前置依赖树（板块 → 知识点），掌握度上色 + 断层诊断 + 前置约束推题 */
+(function(){
+  const KP_ALIAS={'有理数运算':'有理数','概率初步':'概率','平行线的性质':'平行线的判定','旋转与中心对称':'中心对称','二次函数图象平移':'二次函数'};
+  const STRANDS=[
+    {name:'数与式',color:'#8AD6B6',edge:'#5FAF8D',nodes:[['有理数',null],['数轴','有理数'],['相反数','有理数'],['绝对值','有理数'],['有理数大小比较','有理数'],['有理数加法','有理数'],['有理数乘法','有理数'],['有理数的乘方','有理数乘法'],['科学记数法','有理数的乘方'],['实数','有理数'],['平方根','实数'],['立方根','实数'],['二次根式','平方根'],['整式的加减','有理数'],['单项式','整式的加减'],['幂的运算','单项式'],['乘法公式','整式的加减'],['因式分解','乘法公式'],['分式','因式分解'],['分式方程','分式']]},
+    {name:'方程与不等式',color:'#F2B7A3',edge:'#D98F77',nodes:[['一元一次方程',null],['二元一次方程','一元一次方程'],['二元一次方程组','二元一次方程'],['不等式',null],['不等式性质','不等式'],['一元一次不等式组','不等式'],['一元二次方程',null],['一元二次方程根与系数','一元二次方程']]},
+    {name:'函数',color:'#9BC4E8',edge:'#4E86B4',nodes:[['平面直角坐标系',null],['函数自变量','平面直角坐标系'],['正比例函数','平面直角坐标系'],['一次函数','正比例函数'],['一次函数的图象','一次函数'],['反比例函数','平面直角坐标系'],['二次函数','一次函数']]},
+    {name:'图形与几何',color:'#E6C79A',edge:'#B08952',nodes:[['三角形',null],['三角形的边','三角形'],['三角形内角和','三角形'],['多边形内角和','三角形内角和'],['等腰三角形','三角形'],['直角三角形','三角形'],['勾股定理','直角三角形'],['锐角三角函数','直角三角形'],['解直角三角形','锐角三角函数'],['全等三角形','三角形'],['相似三角形','全等三角形'],['直线、射线、线段',null],['余角和补角',null],['对顶角',null],['垂线',null],['平行线的判定',null],['命题与证明',null],['轴对称',null],['图形的对称','轴对称'],['中心对称',null],['旋转',null],['投影与视图',null],['平行四边形',null],['四边形判定','平行四边形'],['菱形','平行四边形'],['矩形','平行四边形'],['圆',null],['直线与圆的位置关系','圆'],['圆内接四边形','圆'],['扇形面积','圆'],['弧长','圆'],['圆锥','圆']]},
+    {name:'统计与概率',color:'#C5B4E3',edge:'#7C66A8',nodes:[['数据的收集与整理',null],['统计',null],['众数','统计'],['平均数','统计'],['中位数','统计'],['方差','统计'],['概率',null]]}
+  ];
+  const CROSS_PREREQ={'一元一次方程':['整式的加减'],'不等式':['有理数大小比较'],'一元二次方程':['因式分解']};
+  const nodeIndex={};
+  STRANDS.forEach(s=>s.nodes.forEach(([kp])=>{nodeIndex[kp]={kp,strand:s.name,parent:null,depth:0,children:[]}}));
+  STRANDS.forEach(s=>s.nodes.forEach(([kp,parent])=>{const n=nodeIndex[kp];if(parent&&nodeIndex[parent]){n.parent=parent;nodeIndex[parent].children.push(kp)}}));
+  (function(){let changed=true;while(changed){changed=false;STRANDS.forEach(s=>s.nodes.forEach(([kp])=>{const n=nodeIndex[kp];const d=n.parent&&nodeIndex[n.parent]?nodeIndex[n.parent].depth+1:0;if(d>n.depth){n.depth=d;changed=true}}))}})();
+  function kpCanonical(kp){if(!kp)return null;if(nodeIndex[kp])return kp;return KP_ALIAS[kp]||null}
+  function nodePrereqs(kp){const c=kpCanonical(kp);if(!c)return[];const out=[],n=nodeIndex[c];if(n&&n.parent)out.push(n.parent);(CROSS_PREREQ[c]||[]).forEach(p=>out.push(p));return out}
+  function nodeMastery(kp){const c=kpCanonical(kp);if(!c)return{attempts:0,correct:0,mastery:null,recentWrong:false};const recs=records.filter(r=>kpCanonical(r.kp)===c);if(!recs.length)return{attempts:0,correct:0,mastery:null,recentWrong:false};const correct=recs.filter(r=>r.correct).length,last=recs.at(-1);return{attempts:recs.length,correct,mastery:(correct+2)/(recs.length+4),recentWrong:!!(last&&!last.correct)}}
+  function getPrereqGap(kp){const c=kpCanonical(kp);if(!c)return 0;let gap=0;nodePrereqs(c).forEach(p=>{const m=nodeMastery(p).mastery;if(m!=null&&m<0.7)gap+=0.7-m});return Math.min(1,gap)}
+  window.getPrereqGap=getPrereqGap;window.kpCanonical=kpCanonical;window.renderLogicTree=renderLogicTree;
+  const subtreeSets={};(function(){function collect(kp,set){set.add(kp);(nodeIndex[kp].children||[]).forEach(c=>collect(c,set))}Object.keys(nodeIndex).forEach(kp=>{const s=new Set();collect(kp,s);subtreeSets[kp]=s})})();
+  window.isInTarget=function(kp){if(!window.targetKp)return true;const c=kpCanonical(kp);if(!c)return false;const s=subtreeSets[window.targetKp];return s?s.has(c):(c===window.targetKp)};
+  const NODE_W=126,NODE_H=32,COL_GAP=28,ROW_GAP=30,PAD=20,BAND_GAP=28,TITLE_H=24,SVGNS='http://www.w3.org/2000/svg';
+  function stateOf(kp){const m=nodeMastery(kp).mastery;if(m==null)return'none';if(m>=0.8)return'ok';if(m>=0.6)return'mid';return'weak'}
+  let panSvg=null,panScale=1,panX=0,panY=0,dragging=false,moved=false,dragSX=0,dragSY=0,dragTX=0,dragTY=0,panReady=false;
+  let selectedKp=null,nodeRects={},nodeEls={};
+  function applyPan(){if(panSvg)panSvg.style.transform='translate('+panX+'px,'+panY+'px) scale('+panScale+')'}
+  function setupPanZoom(){
+    const host=$('logicGraph');if(!host||panReady)return;panReady=true;
+    host.setAttribute('draggable','false');
+    host.addEventListener('dragstart',e=>e.preventDefault());
+    host.addEventListener('selectstart',e=>e.preventDefault());
+    host.addEventListener('wheel',e=>{e.preventDefault();const r=host.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;const ns=Math.max(.2,Math.min(4,panScale*(e.deltaY<0?1.12:0.89)));const k=ns/panScale;panX=mx-(mx-panX)*k;panY=my-(my-panY)*k;panScale=ns;applyPan()},{passive:false});
+    host.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragging=true;moved=false;dragSX=e.clientX;dragSY=e.clientY;dragTX=panX;dragTY=panY;host.setPointerCapture(e.pointerId)});
+    host.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-dragSX,dy=e.clientY-dragSY;if(dx*dx+dy*dy>25)moved=true;if(moved){panX=dragTX+dx;panY=dragTY+dy;applyPan()}});
+    host.addEventListener('pointerup',e=>{if(!dragging)return;dragging=false;if(!moved)handleNodeClick(e.clientX,e.clientY)});host.addEventListener('pointercancel',()=>{dragging=false});
+    const rb=$('logicResetView');if(rb)rb.onclick=()=>{panScale=1;panX=0;panY=0;applyPan()};
+  }
+  function selectKp(kp){selectedKp=kp;for(const k in nodeEls){const g=nodeEls[k].g;if(k===kp){g.style.transform='scale(1.16)';g.style.transformOrigin='center';g.style.transformBox='fill-box';g.style.filter='drop-shadow(0 4px 8px rgba(20,61,54,.32))'}else{g.style.transform='';g.style.filter=''}}}
+  function handleNodeClick(cx,cy){
+    const host=$('logicGraph');const r=host.getBoundingClientRect();
+    const vx=(cx-r.left-panX)/panScale,vy=(cy-r.top-panY)/panScale;
+    let hit=null;
+    for(const kp in nodeRects){const q=nodeRects[kp];if(vx>=q.x&&vx<=q.x+NODE_W&&vy>=q.y&&vy<=q.y+NODE_H){hit=kp;break}}
+    if(hit){if(selectedKp===hit){window.startKpTraining?window.startKpTraining(hit):0}else{selectKp(hit)}}
+    else{selectKp(null)}
+  }
+  function renderLogicTree(){
+    const host=$('logicGraph');if(!host)return;
+    nodeRects={};nodeEls={};selectedKp=null;
+    let maxLeaf=0;
+    const bands=STRANDS.map(s=>{
+      const pos={};let cursor=0;
+      function place(kp,depth){const kids=nodeIndex[kp].children;if(!kids.length){pos[kp]={x:cursor++,y:depth};return}kids.forEach(c=>place(c,depth+1));const xs=kids.map(c=>pos[c].x);pos[kp]={x:(xs[0]+xs[xs.length-1])/2,y:depth}}
+      s.nodes.forEach(([kp,parent])=>{if(!parent||!nodeIndex[parent])place(kp,0)});
+      maxLeaf=Math.max(maxLeaf,cursor);
+      return{s,pos};
+    });
+    const W=PAD*2+maxLeaf*(NODE_W+COL_GAP);
+    let yOff=8;
+    const bandMeta=bands.map(b=>{let d=0;b.s.nodes.forEach(([kp])=>{d=Math.max(d,b.pos[kp].y)});const bh=TITLE_H+d*(NODE_H+ROW_GAP)+NODE_H+PAD;const m={s:b.s,pos:b.pos,bh,y:yOff};yOff+=bh+BAND_GAP;return m});
+    const H=yOff-BAND_GAP+8;
+    const xy=(m,kp)=>({x:PAD+m.pos[kp].x*(NODE_W+COL_GAP),y:m.y+TITLE_H+m.pos[kp].y*(NODE_H+ROW_GAP)});
+    const findAbs=kp=>{for(const m of bandMeta)if(m.pos[kp])return xy(m,kp);return null};
+    host.replaceChildren();
+    const svg=document.createElementNS(SVGNS,'svg');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('width',W);svg.setAttribute('height',H);svg.style.display='block';
+    const defs=document.createElementNS(SVGNS,'defs');defs.innerHTML='<marker id="logicArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9AA69E"/></marker>';svg.append(defs);
+    bandMeta.forEach(m=>{
+      const r=document.createElementNS(SVGNS,'rect');r.setAttribute('x',4);r.setAttribute('y',m.y+2);r.setAttribute('width',W-8);r.setAttribute('height',m.bh-4);r.setAttribute('rx',14);r.setAttribute('fill',m.s.color);r.setAttribute('fill-opacity','0.13');r.setAttribute('stroke',m.s.edge);r.setAttribute('stroke-opacity','0.3');svg.append(r);
+      const t=document.createElementNS(SVGNS,'text');t.setAttribute('x',16);t.setAttribute('y',m.y+18);t.setAttribute('font-size','12.5');t.setAttribute('font-weight','600');t.setAttribute('fill','var(--ink)');t.textContent=m.s.name+' · '+m.s.nodes.length+' 个知识点';svg.append(t);
+    });
+    bandMeta.forEach(m=>m.s.nodes.forEach(([kp])=>{const n=nodeIndex[kp];if(!n.parent||!nodeIndex[n.parent])return;const a=xy(m,n.parent),c=xy(m,kp);drawEdge(svg,a.x+NODE_W/2,a.y+NODE_H,c.x+NODE_W/2,c.y,m.s.edge,0.42,false)}));
+    Object.keys(CROSS_PREREQ).forEach(kp=>CROSS_PREREQ[kp].forEach(p=>{const c=findAbs(kp),a=findAbs(p);if(c&&a)drawEdge(svg,a.x+NODE_W/2,a.y+NODE_H,c.x+NODE_W/2,c.y,'#B08A6A',0.22,true)}));
+    bandMeta.forEach(m=>m.s.nodes.forEach(([kp])=>{
+            const p=xy(m,kp),st=stateOf(kp),mn=nodeMastery(kp);
+      nodeRects[kp]={x:p.x,y:p.y};
+      const g=document.createElementNS(SVGNS,'g');
+      g.style.transition='transform .18s ease, filter .18s ease';
+      const title=document.createElementNS(SVGNS,'title');title.textContent=kp+' · 掌握度 '+(mn.mastery==null?'未接触':Math.round(mn.mastery*100)+'%')+' · 答对 '+mn.correct+'/'+mn.attempts+' · 单击选中 · 再点进入题组训练';g.append(title);
+      const rect=document.createElementNS(SVGNS,'rect');rect.setAttribute('x',p.x);rect.setAttribute('y',p.y);rect.setAttribute('width',NODE_W);rect.setAttribute('height',NODE_H);rect.setAttribute('rx',9);
+      const fill=st==='ok'?'#EAF4ED':st==='mid'?'#F6F1E4':st==='weak'?'#FBE9E2':'#F4F2EA';
+      const stroke=st==='ok'?'#5FAF8D':st==='mid'?'#C8A55F':st==='weak'?'#D98F77':'#C9C2B0';
+      rect.setAttribute('fill',fill);rect.setAttribute('stroke',stroke);rect.setAttribute('stroke-width',mn.recentWrong?'2':'1.2');g.append(rect);
+      nodeEls[kp]={g};
+      const t1=document.createElementNS(SVGNS,'text');t1.setAttribute('x',p.x+NODE_W/2);t1.setAttribute('y',p.y+21);t1.setAttribute('text-anchor','middle');t1.setAttribute('font-size','12');t1.setAttribute('fill','var(--ink)');t1.textContent=kp;g.append(t1);
+      svg.append(g);
+    }));
+    host.append(svg);panSvg=svg;panScale=1;panX=0;panY=0;applyPan();setupPanZoom();renderLogicSummary();
+  }
+  function drawEdge(svg,x1,y1,x2,y2,color,opacity,dashed){const p=document.createElementNS(SVGNS,'path');const my=y1+(y2-y1)/2;p.setAttribute('d','M'+x1+' '+y1+' C '+x1+' '+my+', '+x2+' '+my+', '+x2+' '+y2);p.setAttribute('fill','none');p.setAttribute('stroke',color);p.setAttribute('stroke-opacity',opacity);p.setAttribute('stroke-width','1.3');if(dashed)p.setAttribute('stroke-dasharray','4 4');p.setAttribute('marker-end','url(#logicArrow)');svg.append(p)}
+  function renderLogicSummary(){const el=$('logicSummary');if(!el)return;const gaps=[];STRANDS.forEach(s=>s.nodes.forEach(([kp])=>{const m=nodeMastery(kp);if(m.mastery!=null&&m.mastery<0.6){const pre=nodePrereqs(kp).find(p=>{const pm=nodeMastery(p).mastery;return pm!=null&&pm<0.6});if(pre)gaps.push({kp,pre})}}));if(!gaps.length){el.innerHTML='<span class="logic-ok">✓ 目前没有明显的前置断点，继续按自己的节奏练习即可。</span>';return}const items=gaps.slice(0,4).map(g=>'<li>「<b>'+g.kp+'</b>」薄弱，但前置「<b>'+g.pre+'</b>」也还没掌握 —— 建议先补「'+g.pre+'」</li>').join('');el.innerHTML='<span class="logic-warn">检测到 '+gaps.length+' 处逻辑断点（前置未掌握却反复出错）：</span><ul>'+items+'</ul>'}
+  const baseRender=window.render;window.render=function(){baseRender();if(!$('logicView').hidden)renderLogicTree()};
+})();
+</script></body></html>
